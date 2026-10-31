@@ -1,0 +1,19 @@
+{
+  "name": "print-agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node --watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "ts-node": "^10",
+    "typescript": "^5"
+  }
+}
