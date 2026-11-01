@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type PrintRequestOutcome =
   | "created"
-  | "quota_reached"
+  | "print_limit_reached"
+  | "request_cancelled"
   | "printing_paused"
   | "event_closed"
   | "photo_not_found"
@@ -11,8 +12,10 @@ export type PrintRequestOutcome =
 
 export const printRequestMessages: Record<PrintRequestOutcome, string> = {
   created: "C'est noté ! L'équipe va lancer l'impression de votre photo.",
-  quota_reached:
-    "Vous avez utilisé toutes vos impressions pour cet événement.",
+  print_limit_reached:
+    "Le nombre maximum d'impressions de cet événement est atteint.",
+  request_cancelled:
+    "Votre demande a été annulée par l'équipe. Vous pouvez en refaire une.",
   printing_paused:
     "Les impressions sont en pause pour le moment. Merci de patienter quelques instants, puis réessayez.",
   event_closed:
@@ -29,6 +32,7 @@ export const printRequestMessages: Record<PrintRequestOutcome, string> = {
 export function canRetry(outcome: PrintRequestOutcome): boolean {
   return (
     outcome === "printing_paused" ||
+    outcome === "request_cancelled" ||
     outcome === "connection_lost" ||
     outcome === "unexpected_error"
   );
@@ -36,7 +40,8 @@ export function canRetry(outcome: PrintRequestOutcome): boolean {
 
 const knownResults: readonly string[] = [
   "created",
-  "quota_reached",
+  "print_limit_reached",
+  "request_cancelled",
   "printing_paused",
   "event_closed",
   "photo_not_found",

@@ -6,7 +6,10 @@
 |---|---|
 | QR code | Un QR par événement (token dans l'URL), code court saisissable en secours |
 | Compte au mariage (v2) | Optionnel, sans email obligatoire |
-| Impressions par invité | Limite par défaut de 2 à 3, réglable par l'organisateur |
+| Quota d'impressions | Par événement, pas par invité ; sans valeur renseignée, pas de limite |
+| Quota et échecs | Un échec reste compté, une annulation rend l'impression |
+| Accès opérateur | Lien secret, seul le hash est stocké |
+| Validation des impressions | L'opérateur lance chaque job ; « Réessayer » relance directement |
 | Galerie | Suppression d'une photo par un administrateur, pas de modération préalable |
 | Export | Zip simple, un dossier par événement, tous les admins peuvent exporter |
 | Clôture | Seul l'Owner clôture |
@@ -26,9 +29,6 @@
 | # | Question | Story concernée | Qui répond |
 |---|---|---|---|
 | 1 | Modèle exact de l'imprimante, connexion, système de l'ordinateur du salon, formats de papier, consommables, coût par tirage, retour d'état du pilote | SCRUM-26, 42 | La personne qui fournit l'imprimante |
-| 2 | Mécanisme exact de validation des impressions par l'opérateur (valider chaque job, ou « autoriser la prochaine ») | SCRUM-21, 25 | Germain |
-| 3 | Accès opérateur en v1 : lien ou code secret simple, sans compte complet | SCRUM-25 | Germain |
-| 4 | Quota par défaut : 2 ou 3 impressions par invité ; un échec consomme-t-il le quota ? | SCRUM-16, 21, 31 | Germain |
 | 5 | Option galerie décochée par défaut (consentement explicite) | SCRUM-19, 28 | Germain |
 | 6 | Un invité peut-il retirer lui-même ses photos de la galerie ? Peut-il enregistrer les photos de la galerie ? | SCRUM-28, 29 | Germain |
 | 7 | Photo originale conservée, ou seulement l'image compressée ; dimensions cibles | SCRUM-17, 18, 20 | Germain, selon le format d'impression |

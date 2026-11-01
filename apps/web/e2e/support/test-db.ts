@@ -138,7 +138,7 @@ export class TestDb {
   /** An open event with one guest who owns one photo. */
   async seed(
     event: {
-      quota?: number;
+      limit?: number;
       paused?: boolean;
       status?: string;
       accessToken?: string;
@@ -147,13 +147,13 @@ export class TestDb {
     const eventId = randomUUID();
     await this.admin.query(
       `insert into public.events
-         (id, name, status, print_quota_per_guest, printing_paused,
+         (id, name, status, print_limit, printing_paused,
           access_token, short_code)
        values ($1, 'Salon test', $2, $3, $4, $5, $6)`,
       [
         eventId,
         event.status ?? "open",
-        event.quota ?? 2,
+        event.limit ?? null,
         event.paused ?? false,
         event.accessToken ?? randomUUID() + randomUUID(),
         randomUUID().slice(0, 8),

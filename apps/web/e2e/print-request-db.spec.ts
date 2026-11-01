@@ -45,22 +45,22 @@ test.describe("demande d'impression", () => {
   });
 
   /**
-   * Scenario: Quota atteint
-   *   Given j'ai utilisé toutes mes impressions
+   * Scenario: Quota de l'événement atteint
+   *   Given le quota d'impressions de l'événement est atteint
    *   When je tente d'imprimer
    *   Then aucun job n'est créé
    */
   test("quota atteint : aucun job créé", async () => {
-    const f = await db.seed({ quota: 1 });
+    const f = await db.seed({ limit: 1 });
     await db.createPrintJob(f.userId, f.photoId, randomUUID());
 
     const second = await db.createPrintJob(f.userId, f.photoId, randomUUID());
-    expect(second.result).toBe("quota_reached");
+    expect(second.result).toBe("print_limit_reached");
     expect(await db.jobCount(f.guestId)).toBe(1);
   });
 
   test("un job en échec reste compté dans le quota", async () => {
-    const f = await db.seed({ quota: 1 });
+    const f = await db.seed({ limit: 1 });
     await db.createPrintJob(f.userId, f.photoId, randomUUID());
     await db.admin.query(
       "update public.print_jobs set status = 'FAILED' where guest_id = $1",
@@ -68,7 +68,7 @@ test.describe("demande d'impression", () => {
     );
 
     const retry = await db.createPrintJob(f.userId, f.photoId, randomUUID());
-    expect(retry.result).toBe("quota_reached");
+    expect(retry.result).toBe("print_limit_reached");
   });
 
   /**
@@ -77,7 +77,7 @@ test.describe("demande d'impression", () => {
    *   Then un seul job est créé
    */
   test("double appui simultané : un seul job", async () => {
-    const f = await db.seed({ quota: 3 });
+    const f = await db.seed({ limit: 3 });
     const key = randomUUID();
 
     const results = await Promise.all(
@@ -92,7 +92,7 @@ test.describe("demande d'impression", () => {
   });
 
   test("une réponse perdue puis rejouée rend le même job, quota plein", async () => {
-    const f = await db.seed({ quota: 1 });
+    const f = await db.seed({ limit: 1 });
     const key = randomUUID();
     const first = await db.createPrintJob(f.userId, f.photoId, key);
     const replay = await db.createPrintJob(f.userId, f.photoId, key);
@@ -102,7 +102,7 @@ test.describe("demande d'impression", () => {
   });
 
   test("la même clé sur une autre photo est refusée", async () => {
-    const f = await db.seed({ quota: 3 });
+    const f = await db.seed({ limit: 3 });
     const other = await db.seedPhoto(f.eventId, f.guestId);
     const key = randomUUID();
     await db.createPrintJob(f.userId, f.photoId, key);
@@ -112,19 +112,85 @@ test.describe("demande d'impression", () => {
     expect(await db.jobCount(f.guestId)).toBe(1);
   });
 
-  /** Cas limite : demandes simultanées, décompte du quota atomique. */
-  test("demandes simultanées : le quota n'est jamais dépassé", async () => {
-    const f = await db.seed({ quota: 2 });
+  /** Cas limite : demandes simultanées de plusieurs invités, décompte atomique. */
+  test("demandes simultanées : le quota de l'événement n'est jamais dépassé", async () => {
+    const f = await db.seed({ limit: 2 });
+    const guests = await Promise.all(
+      Array.from({ length: 10 }, () => db.seedGuest(f.eventId))
+    );
 
     const results = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        db.createPrintJob(f.userId, f.photoId, randomUUID())
-      )
+      guests.map((g) => db.createPrintJob(g.userId, g.photoId, randomUUID()))
     );
 
     expect(results.filter((r) => r.result === "created")).toHaveLength(2);
-    expect(results.filter((r) => r.result === "quota_reached")).toHaveLength(8);
-    expect(await db.jobCount(f.guestId)).toBe(2);
+    expect(
+      results.filter((r) => r.result === "print_limit_reached")
+    ).toHaveLength(8);
+  });
+
+  test("un invité attend la fin de la demande en cours d'un autre", async () => {
+    const f = await db.seed({ limit: 1 });
+    const other = await db.seedGuest(f.eventId);
+
+    // The first request stays uncommitted while the second one starts, so the
+    // second one cannot count it yet: only the lock can protect the quota.
+    const { second } = await db.as("authenticated", f.userId, async (client) => {
+      await client.query("select public.create_print_job($1, $2)", [
+        f.photoId,
+        randomUUID(),
+      ]);
+      const pending = db.createPrintJob(
+        other.userId,
+        other.photoId,
+        randomUUID()
+      );
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return { second: pending };
+    });
+
+    expect((await second).result).toBe("print_limit_reached");
+  });
+
+  test("le quota se partage entre tous les invités de l'événement", async () => {
+    const f = await db.seed({ limit: 1 });
+    const other = await db.seedGuest(f.eventId);
+    await db.createPrintJob(f.userId, f.photoId, randomUUID());
+
+    const second = await db.createPrintJob(
+      other.userId,
+      other.photoId,
+      randomUUID()
+    );
+
+    expect(second.result).toBe("print_limit_reached");
+  });
+
+  test("le quota d'un événement ne touche pas les autres", async () => {
+    const full = await db.seed({ limit: 1 });
+    const open = await db.seed({ limit: 1 });
+    await db.createPrintJob(full.userId, full.photoId, randomUUID());
+
+    const result = await db.createPrintJob(
+      open.userId,
+      open.photoId,
+      randomUUID()
+    );
+
+    expect(result.result).toBe("created");
+  });
+
+  test("sans quota renseigné, il n'y a pas de limite", async () => {
+    const f = await db.seed();
+
+    for (let i = 0; i < 5; i++) {
+      const { result } = await db.createPrintJob(
+        f.userId,
+        f.photoId,
+        randomUUID()
+      );
+      expect(result).toBe("created");
+    }
   });
 
   /**
@@ -261,12 +327,12 @@ test.describe("isolation et droits (RLS)", () => {
   });
 
   test("un invité ne peut pas changer le quota ni lever la pause", async () => {
-    const f = await db.seed({ quota: 1, paused: true });
+    const f = await db.seed({ limit: 1, paused: true });
 
     const updated = await db.as("authenticated", f.userId, (client) =>
       client.query(
         `update public.events
-         set print_quota_per_guest = 99, printing_paused = false`
+         set print_limit = 99, printing_paused = false`
       )
     );
     expect(updated.rowCount).toBe(0);

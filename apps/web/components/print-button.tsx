@@ -15,8 +15,18 @@ import {
  * One key per photo, kept across reloads: a guest who reloads after losing
  * the network must replay the same request, not create a second print.
  */
+const storageKeyFor = (photoId: string) => `print-request:${photoId}`;
+
+function forgetKey(photoId: string) {
+  try {
+    sessionStorage.removeItem(storageKeyFor(photoId));
+  } catch {
+    // Nothing was stored, so there is nothing to forget.
+  }
+}
+
 function idempotencyKeyFor(photoId: string): string {
-  const storageKey = `print-request:${photoId}`;
+  const storageKey = storageKeyFor(photoId);
   try {
     const existing = sessionStorage.getItem(storageKey);
     if (existing) return existing;
@@ -48,6 +58,12 @@ export function PrintButton({
     key.current ??= idempotencyKeyFor(photoId);
 
     const result = await requestPrint(createClient(), photoId, key.current);
+
+    // That request is over: asking again must be a new one.
+    if (result === "request_cancelled") {
+      key.current = null;
+      forgetKey(photoId);
+    }
 
     setOutcome(result);
     setSending(false);

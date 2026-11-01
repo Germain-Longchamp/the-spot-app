@@ -43,16 +43,18 @@ test("confirmation en langage humain", async ({ page }) => {
 });
 
 /**
- * Scenario: Quota atteint
+ * Scenario: Quota de l'événement atteint
  *   Then un message m'explique pourquoi
  */
-test("quota atteint : le message explique pourquoi", async ({ page }) => {
-  await answerWith(page, "quota_reached");
+test("quota de l'événement atteint : le message explique pourquoi", async ({
+  page,
+}) => {
+  await answerWith(page, "print_limit_reached");
   await page.goto("/dev/print-button");
   await button(page).click();
 
   await expect(page.getByRole("status")).toContainText(
-    "utilisé toutes vos impressions"
+    "nombre maximum d'impressions de cet événement"
   );
 });
 
@@ -124,4 +126,29 @@ test("erreur serveur : aucun détail technique affiché", async ({ page }) => {
 
   await expect(page.getByRole("status")).toContainText("Réessayez");
   await expect(page.locator("body")).not.toContainText("permission denied");
+});
+
+test("demande annulée par l'équipe : l'invité peut en refaire une", async ({
+  page,
+}) => {
+  const keys: string[] = [];
+  let result = "request_cancelled";
+  await page.route(RPC, (route) => {
+    keys.push(route.request().postDataJSON().p_idempotency_key);
+    return route.fulfill({
+      status: 200,
+      headers: cors,
+      json: { result, job_id: "job-1" },
+    });
+  });
+  await page.goto("/dev/print-button");
+
+  await button(page).click();
+  await expect(page.getByRole("status")).toContainText("annulée par l'équipe");
+
+  result = "created";
+  await button(page).click();
+  await expect(page.getByRole("status")).toContainText("C'est noté");
+
+  expect(new Set(keys).size).toBe(2);
 });

@@ -7,6 +7,7 @@ const statuses: PrintJobStatus[] = [
   "DONE",
   "STUCK",
   "FAILED",
+  "CANCELLED",
 ];
 
 test("chaque statut a un texte humain, sans statut brut", () => {

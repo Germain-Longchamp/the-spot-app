@@ -69,7 +69,7 @@ const silenceFor = (id: string, seconds: number) =>
   );
 
 async function pendingJob(f?: Fixture, authorized = true) {
-  const fixture = f ?? (await db.seed({ quota: 5 }));
+  const fixture = f ?? (await db.seed({ limit: 5 }));
   const { job_id } = await db.createPrintJob(
     fixture.userId,
     fixture.photoId,

@@ -40,7 +40,7 @@ async function statusFor(f: Fixture) {
 }
 
 async function printingJob() {
-  const f = await db.seed({ quota: 5 });
+  const f = await db.seed({ limit: 5 });
   const { job_id } = await db.createPrintJob(f.userId, f.photoId, randomUUID());
   await db.admin.query(
     "update public.print_jobs set authorized_at = now() where id = $1",
