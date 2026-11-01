@@ -14,7 +14,8 @@
 | Installation | Pas d'installation imposée ; expérience « page web » rassurante |
 | Stack | Next.js 14, Supabase (auth anonyme, Postgres + RLS, Storage, Realtime), agent Node.js sous PM2 |
 | Impression | Agent local sur l'ordinateur branché à l'imprimante, connexion sortante uniquement |
-| STUCK | Implémenté dès le départ avec le heartbeat (seuil 60 s via `pg_cron`) |
+| STUCK | Implémenté dès le départ avec le heartbeat (seuil 60 s via `pg_cron`, sans fonction Edge) |
+| DONE tardif | Accepté après `STUCK` si la tentative est la même et sans réessai ; sinon ignoré et tracé |
 | Mitigation v1 | Une personne est présente à l'ordinateur du salon pendant l'événement |
 | Ordre de construction | Pipeline d'impression avant l'interface |
 | Direction visuelle | Sombre, tactile, minimale (inspirée BeReal), ambre pour les actions principales |

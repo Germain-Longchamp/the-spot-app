@@ -47,12 +47,14 @@ Identité anonyme d'un invité, rattachée à une session Supabase anonyme.
 | status | enum `PENDING` / `PRINTING` / `DONE` / `STUCK` / `FAILED` | |
 | idempotency_key | text | unique par invité |
 | authorized_at | timestamptz | autorisation de l'opérateur (hypothèse, voir `04-impression.md`) |
+| attempt | int | numéro de la tentative, incrémenté à chaque prise |
 | claimed_by | text | identifiant de l'agent qui a verrouillé le job |
 | last_error | text | motif d'échec |
+| last_activity_at | timestamptz | dernier signe de vie, base du passage en `STUCK` |
 | created_at, started_at, finished_at | timestamptz | |
 
 ### `print_job_events`
-Historique des transitions : `job_id`, `from_status`, `to_status`, `actor` (agent, opérateur, système), `created_at`.
+Historique des transitions : `job_id`, `from_status`, `to_status`, `actor` (invité, agent, opérateur, système), `attempt`, `applied` (faux pour une demande refusée), `detail`, `created_at`.
 
 ### `agent_heartbeats`
 `agent_id`, `event_id`, `last_seen_at` (heure du serveur).
@@ -83,9 +85,9 @@ Points à faire relire par Germain : isolation entre événements, visibilité d
 ## Fonctions serveur (RPC) attendues
 
 - `create_print_job` : vérifie le quota et crée le job de façon atomique, avec la clé d'idempotence
-- `transition_print_job` : seule voie de changement de statut, avec contrôle des transitions
+- `transition_print_job` : seule voie de changement de statut, avec contrôle des transitions (rôle service uniquement)
 - `claim_print_job` : verrouille un job pour un agent
-- `mark_stuck_jobs` : appelée par `pg_cron`, passe en `STUCK` les jobs sans activité depuis 60 s
+- `mark_stuck_jobs` : appelée par `pg_cron` toutes les 10 s, passe en `STUCK` les jobs sans activité depuis 60 s
 - `delete_photo`, `purge_event` : suppressions cohérentes, avec trace
 
 ## Rétention
