@@ -62,3 +62,18 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      # Unit tests cannot see a crash at startup: runs the real program with no
+      # server to reach, then checks that it survives and stops cleanly.
+      - name: Start and stop the agent
+        env:
+          SUPABASE_URL: http://127.0.0.1:9
+          SUPABASE_SERVICE_ROLE_KEY: not-a-real-key
+          EVENT_ID: 00000000-0000-0000-0000-000000000001
+          POLL_INTERVAL_MS: 300
+        run: |
+          node dist/index.js > agent.log 2>&1 &
+          agent=$!
+          sleep 3
+          kill -TERM "$agent"
+          wait "$agent"
+          grep -q "arrêté" agent.log
