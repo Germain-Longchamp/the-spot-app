@@ -3,7 +3,8 @@ export type PrintJobStatus =
   | "PRINTING"
   | "DONE"
   | "STUCK"
-  | "FAILED";
+  | "FAILED"
+  | "CANCELLED";
 
 const guestLabels: Record<PrintJobStatus, string> = {
   PENDING: "En attente de validation par l'équipe",
@@ -11,6 +12,7 @@ const guestLabels: Record<PrintJobStatus, string> = {
   DONE: "Votre photo est prête, à récupérer près de l'imprimante",
   STUCK: "Un souci est survenu, rendez-vous auprès de l'équipe",
   FAILED: "Un souci est survenu, rendez-vous auprès de l'équipe",
+  CANCELLED: "Votre demande a été annulée par l'équipe",
 };
 
 /** The only text a guest may see about a job: never the raw status. */

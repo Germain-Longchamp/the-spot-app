@@ -118,7 +118,7 @@ const retry = (id: string) =>
   db.service("transition_print_job", id, "PENDING", "operator");
 
 async function authorizedJob(f?: Fixture) {
-  const fixture = f ?? (await db.seed({ quota: 5 }));
+  const fixture = f ?? (await db.seed({ limit: 5 }));
   const { job_id } = await db.createPrintJob(
     fixture.userId,
     fixture.photoId,

@@ -20,7 +20,7 @@ Téléphone invité ──► Supabase (photo + job PENDING)
 
 ## Cycle de vie d'un job
 
-Statuts : `PENDING → PRINTING → DONE / STUCK / FAILED`
+Statuts : `PENDING → PRINTING → DONE / STUCK / FAILED`, plus `CANCELLED`
 
 | De | Vers | Déclencheur |
 |---|---|---|
@@ -32,8 +32,9 @@ Statuts : `PENDING → PRINTING → DONE / STUCK / FAILED`
 | STUCK | PENDING | Réessai manuel par l'opérateur |
 | STUCK | DONE | L'agent revient et confirme sa tentative, sans réessai entre-temps |
 | FAILED | PENDING | Réessai manuel par l'opérateur |
+| PENDING, STUCK, FAILED | CANCELLED | Annulation par l'opérateur (définitive) |
 
-Interdit : toute transition depuis `DONE`. Les transitions passent par une **fonction serveur unique et atomique** (`transition_print_job`). L'historique de chaque transition est conservé, avec l'heure du serveur, ainsi que les demandes refusées.
+Interdit : toute transition depuis `DONE` ou `CANCELLED`, et l'annulation d'une impression déjà démarrée. Les transitions passent par une **fonction serveur unique et atomique** (`transition_print_job`). L'historique de chaque transition est conservé, avec l'heure du serveur, ainsi que les demandes refusées.
 
 Chaque prise de job incrémente un numéro de tentative, que l'agent doit rappeler dans ses comptes rendus.
 
@@ -49,14 +50,14 @@ Pas de file automatisée. Règles :
 - l'opérateur lance, réessaie ou annule un job ; il peut mettre toutes les impressions en pause ;
 - chaque action opérateur est tracée.
 
-**Question ouverte** (SCRUM-21 et SCRUM-25) : l'opérateur valide-t-il chaque job avant son passage en impression, ou autorise-t-il « la prochaine » ? Dans les deux cas, la solution simple est un horodatage d'autorisation sur le job que l'agent exige avant de le prendre. À confirmer avec Germain avant d'implémenter.
+L'opérateur valide chaque job : « Lancer » pose un horodatage d'autorisation, que l'agent exige avant de prendre le job (SCRUM-25). « Réessayer » relance directement, sans second geste.
 
 ## Quota
 
-- Quota d'impressions par invité (défaut à fixer : 2 ou 3), réglable par l'opérateur
-- Le décompte est **atomique** (deux demandes simultanées ne dépassent pas le quota)
+- Le quota s'applique à **l'événement**, pas à l'invité : sans valeur renseignée, pas de limite
+- Le décompte est **atomique** : il se fait sous verrou sur l'événement, deux invités simultanés ne le dépassent pas
+- Une demande annulée rend son impression ; un échec reste compté, car le réessai réutilise la même demande
 - Un changement de quota s'applique aux demandes suivantes, sans effet rétroactif (hypothèse)
-- Question ouverte : un job en échec consomme-t-il le quota ?
 
 ## Idempotence
 

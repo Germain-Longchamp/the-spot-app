@@ -14,7 +14,7 @@ Ce schéma est une **proposition de départ** déduite des stories. Il n'a pas �
 | short_code | text | unique, saisissable en secours |
 | status | enum `open` / `closed` | |
 | gallery_visibility | enum `visible` / `hidden` | |
-| print_quota_per_guest | int | défaut à fixer (2 ou 3) |
+| print_limit | int | quota d'impressions de l'événement ; vide = pas de limite |
 | printing_paused | bool | pause globale par l'opérateur |
 | created_at, closed_at | timestamptz | |
 
@@ -44,7 +44,7 @@ Identité anonyme d'un invité, rattachée à une session Supabase anonyme.
 |---|---|---|
 | id | uuid | |
 | event_id, photo_id, guest_id | uuid | |
-| status | enum `PENDING` / `PRINTING` / `DONE` / `STUCK` / `FAILED` | |
+| status | enum `PENDING` / `PRINTING` / `DONE` / `STUCK` / `FAILED` / `CANCELLED` | |
 | idempotency_key | text | unique par invité |
 | authorized_at | timestamptz | autorisation de l'opérateur (hypothèse, voir `04-impression.md`) |
 | attempt | int | numéro de la tentative, incrémenté à chaque prise |
@@ -84,7 +84,7 @@ Points à faire relire par Germain : isolation entre événements, visibilité d
 
 ## Fonctions serveur (RPC) attendues
 
-- `create_print_job` : vérifie le quota et crée le job de façon atomique, avec la clé d'idempotence
+- `create_print_job` : vérifie le quota de l'événement et crée le job de façon atomique, avec la clé d'idempotence
 - `transition_print_job` : seule voie de changement de statut, avec contrôle des transitions (rôle service uniquement)
 - `claim_print_job` : verrouille un job pour un agent
 - `mark_stuck_jobs` : appelée par `pg_cron` toutes les 10 s, passe en `STUCK` les jobs sans activité depuis 60 s

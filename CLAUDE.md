@@ -95,12 +95,14 @@ the-spot/
   scripts/              initialisation de l'événement de démo, purge, outils
 ```
 
+## Décisions récentes
+
+- Quota d'impressions **par événement**, pas par invité : sans valeur renseignée, pas de limite. Une demande annulée rend son impression, un échec reste compté
+- Opérateur : accès par lien secret (seul son hash est en base), validation job par job, et « Réessayer » relance directement
+
 ## Points ouverts (à ne pas trancher seul)
 
 - Modèle exact de l'imprimante, connexion, système de l'ordinateur du salon, formats de papier, consommables, retour d'état du pilote (SCRUM-26)
-- Validation de chaque job par l'opérateur : mécanisme exact (SCRUM-21, SCRUM-25)
-- Accès opérateur : lien ou code secret simple en v1 (SCRUM-25)
-- Quota d'impressions par invité : 2 ou 3 par défaut, réglable
 - Option galerie décochée par défaut (SCRUM-19)
 - Photo originale conservée ou seulement la version compressée (SCRUM-20)
 

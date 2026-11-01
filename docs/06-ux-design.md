@@ -41,7 +41,7 @@ Sombre, tactile, minimale. Inspirée de l'esthétique sans filtre de BeReal, ave
 | Permission caméra refusée | Message simple, proposition d'importer une photo, instructions pour réactiver |
 | Navigateur intégré à une application qui bloque la caméra | Proposer d'ouvrir dans Safari ou Chrome |
 | Réseau lent ou coupé pendant l'envoi | Progression visible, reprise automatique, bouton « Réessayer » en dernier recours |
-| Quota d'impressions atteint | Bouton « Imprimer » désactivé avec explication |
+| Quota de l'événement atteint | Bouton « Imprimer » désactivé avec explication |
 | Imprimante hors ligne | Message clair, visible sur l'écran d'impression |
 | Événement clôturé ou token invalide | Message neutre, aucune donnée affichée |
 | Stockage navigateur bloqué (navigation privée) | L'appli reste utilisable, message simple |
