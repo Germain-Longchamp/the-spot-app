@@ -2,7 +2,11 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
-  reporter: "list",
+  // The "github" reporter names failing tests directly in the CI run.
+  reporter: process.env.CI ? [["list"], ["github"]] : "list",
+  forbidOnly: !!process.env.CI,
+  // Flaky tests must be fixed or isolated, never hidden by a retry (SCRUM-40).
+  retries: 0,
   use: {
     baseURL: "http://localhost:3000",
   },
