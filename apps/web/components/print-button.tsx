@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { PrinterStatus } from "@/components/printer-status";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import {
   canRetry,
@@ -58,14 +59,9 @@ export function PrintButton({
   return (
     <div className="flex flex-col gap-3">
       <PrinterStatus eventId={eventId} />
-      <button
-        type="button"
-        onClick={handlePress}
-        disabled={sending || finished}
-        className="min-h-12 rounded-lg bg-amber-500 px-6 font-semibold text-black disabled:opacity-50"
-      >
+      <Button onClick={handlePress} disabled={sending || finished}>
         Imprimer
-      </button>
+      </Button>
       <p role="status" aria-live="polite">
         {sending
           ? "Envoi de votre demande…"

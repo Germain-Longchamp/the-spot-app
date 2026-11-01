@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { colors } from "./lib/ui/tokens";
 
 const config: Config = {
   content: [
@@ -9,8 +10,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: colors.background,
+        surface: colors.surface,
+        border: colors.border,
+        foreground: colors.foreground,
+        muted: colors.muted,
+        accent: colors.accent,
+        "on-accent": colors.onAccent,
+        success: colors.success,
+        danger: colors.danger,
       },
     },
   },

@@ -11,17 +11,33 @@ const POLL_INTERVAL_MS = 10_000;
 const FAILURES_BEFORE_UNKNOWN = 3;
 
 const display: Record<State, { text: string; dot: string }> = {
-  checking: { text: "Vérification de l'imprimante…", dot: "bg-gray-400" },
-  online: { text: "L'imprimante est connectée", dot: "bg-teal-500" },
+  checking: { text: "Vérification de l'imprimante…", dot: "bg-muted" },
+  online: { text: "L'imprimante est connectée", dot: "bg-success" },
   offline: {
     text: "L'imprimante n'est pas connectée pour le moment",
-    dot: "bg-red-600",
+    dot: "bg-danger",
   },
   unknown: {
     text: "Impossible de vérifier l'imprimante pour le moment",
-    dot: "bg-red-600",
+    dot: "bg-danger",
   },
 };
+
+export function PrinterStatusView({ state }: { state: State }) {
+  const { text, dot } = display[state];
+
+  return (
+    <p
+      data-testid="printer-status"
+      data-state={state}
+      aria-live="polite"
+      className="flex items-center gap-2 text-sm"
+    >
+      <span aria-hidden="true" className={`size-3 rounded-full ${dot}`} />
+      {text}
+    </p>
+  );
+}
 
 export function PrinterStatus({ eventId }: { eventId: string }) {
   const [state, setState] = useState<State>("checking");
@@ -54,17 +70,5 @@ export function PrinterStatus({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  const { text, dot } = display[state];
-
-  return (
-    <p
-      data-testid="printer-status"
-      data-state={state}
-      aria-live="polite"
-      className="flex items-center gap-2 text-sm"
-    >
-      <span aria-hidden="true" className={`size-3 rounded-full ${dot}`} />
-      {text}
-    </p>
-  );
+  return <PrinterStatusView state={state} />;
 }
