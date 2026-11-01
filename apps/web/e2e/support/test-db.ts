@@ -63,9 +63,10 @@ export class TestDb {
       database: "postgres",
       max: 20,
     });
-    // Stopping Postgres can reach a connection the pool has not finished
-    // closing. Without a listener, that error would crash the test worker.
-    admin.on("connect", (client) => client.on("error", () => undefined));
+    // pool.end() does not wait for sockets to close, so stopping Postgres can
+    // hit an idle connection. pg-pool then emits "error" on the pool itself,
+    // which would crash the test worker if nothing listened.
+    admin.on("error", () => undefined);
 
     await admin.query(
       readFileSync(path.join(__dirname, "supabase-stub.sql"), "utf-8")
