@@ -84,7 +84,12 @@ interface Printer {
 
 Deux implémentations : `SimulatedPrinter` (délai configurable, succès, échec, lenteur) et l'implémentation réelle pour le modèle choisi (SCRUM-26). **Seule cette interface change** entre le simulateur et le matériel.
 
-Configuration : démarrage et redémarrage automatiques via PM2, journal local avec rotation, aucun secret dans le dépôt.
+Configuration : démarrage et redémarrage automatiques via PM2 (`apps/print-agent/ecosystem.config.cjs`), journal local avec rotation (`pm2-logrotate`), aucun secret dans le dépôt.
+
+L'agent exige Node 22 : il plante au démarrage sous Node 20. Il interroge Supabase toutes les 2 s : c'est une connexion sortante uniquement. Trois règles protègent contre une double impression :
+- après un redémarrage, l'agent ne reprend jamais seul un job commencé : celui-ci passe en `STUCK` et l'opérateur décide ;
+- juste avant d'imprimer, l'agent vérifie que le job est toujours à lui sur la même tentative ; en cas de doute, il n'imprime pas ;
+- le téléchargement est limité à 3 essais, pour rester sous le seuil de 60 s.
 
 ## Heartbeat et statut visible
 

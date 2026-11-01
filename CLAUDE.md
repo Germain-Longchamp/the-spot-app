@@ -45,11 +45,11 @@ Source de vérité du backlog : Jira, site `glongchamp8.atlassian.net`, projet *
 ## Méthode de travail
 
 - **Ordre de construction** : socle (SCRUM-39) → pipeline d'impression avec imprimante simulée (SCRUM-21 à 24) → accès et événement → capture/import → galerie → opérateur et réglages → export, purge → design et logo en parallèle. Le pipeline d'impression passe **avant** l'interface.
-- **Une story Jira = une branche = une revue de Germain.** Tranches verticales (de l'écran à la base), jamais « tout le back puis tout le front ».
+- **Une story Jira = une branche = une PR.** Depuis le 2026-11-01, Germain délègue la fusion à Claude, une fois la CI au vert, et relit quand il le souhaite. Tranches verticales (de l'écran à la base), jamais « tout le back puis tout le front ».
 - **Les critères Gherkin de chaque story deviennent des tests automatisés.** Sans test correspondant, la story n'est pas terminée.
-- **Jira** : quand Germain dit « implémente SCRUM-xx », lis la story via le connecteur Atlassian (description, panels, critères). Passe-la en « En cours » au démarrage et en « Test » à l'ouverture de la PR. Le passage en « Terminé(e) » revient à Germain.
+- **Jira** : quand Germain dit « implémente SCRUM-xx », lis la story via le connecteur Atlassian (description, panels, critères). Passe-la en « En cours » au démarrage, en « Test » à l'ouverture de la PR, en « Terminé(e) » après fusion.
 - **Hypothèses** : les stories contiennent des lignes « Hypothèse à confirmer avec Germain ». **N'invente jamais la réponse** : pose la question, ou implémente la solution la plus simple en la signalant clairement dans la description de la PR.
-- **Relecture obligatoire par Germain** pour : règles RLS, verrou et transitions des jobs, quota d'impressions, droits opérateur, export, purge. Signale-les dans la PR.
+- **À signaler dans la PR pour que Germain puisse relire** : règles RLS, verrou et transitions des jobs, quota d'impressions, droits opérateur, export, purge. Après fusion, applique les migrations sur Supabase et vérifie-les.
 - Aucune nouvelle fonctionnalité dans les deux dernières semaines avant le salon : corrections uniquement.
 
 ## Definition of done

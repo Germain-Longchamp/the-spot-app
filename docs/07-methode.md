@@ -14,8 +14,8 @@
 5. Écriture des tests à partir des scénarios Gherkin, puis du code
 6. Intégration continue : lint, types, tests, build
 7. Pull request avec : résumé, scénarios couverts, hypothèses prises, points à relire
-8. Relecture de Germain, puis fusion
-9. Statut Jira : « En cours » au démarrage et « Test » à l'ouverture de la PR, par Claude ; « Terminé(e) » par Germain
+8. Fusion par Claude une fois la CI au vert ; Germain relit quand il le souhaite
+9. Statut Jira géré par Claude : « En cours » au démarrage, « Test » à l'ouverture de la PR, « Terminé(e) » après fusion
 
 ## Panels de la charte Jira
 
