@@ -137,14 +137,27 @@ export class TestDb {
 
   /** An open event with one guest who owns one photo. */
   async seed(
-    event: { quota?: number; paused?: boolean; status?: string } = {}
+    event: {
+      quota?: number;
+      paused?: boolean;
+      status?: string;
+      accessToken?: string;
+    } = {}
   ): Promise<Fixture> {
     const eventId = randomUUID();
     await this.admin.query(
       `insert into public.events
-         (id, name, status, print_quota_per_guest, printing_paused)
-       values ($1, 'Salon test', $2, $3, $4)`,
-      [eventId, event.status ?? "open", event.quota ?? 2, event.paused ?? false]
+         (id, name, status, print_quota_per_guest, printing_paused,
+          access_token, short_code)
+       values ($1, 'Salon test', $2, $3, $4, $5, $6)`,
+      [
+        eventId,
+        event.status ?? "open",
+        event.quota ?? 2,
+        event.paused ?? false,
+        event.accessToken ?? randomUUID() + randomUUID(),
+        randomUUID().slice(0, 8),
+      ]
     );
     const guest = await this.seedGuest(eventId);
     return { eventId, ...guest };

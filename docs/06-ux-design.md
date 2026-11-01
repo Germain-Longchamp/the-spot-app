@@ -60,3 +60,7 @@ Ajustement de la boucle du S (SCRUM-37) : lisible sur fond sombre et en petite t
 ## Panneau opérateur
 
 Écran de l'équipe, lisible d'un coup d'œil : liste des jobs avec photo et statut, bouton pour lancer l'impression suivante, pause globale, réessai ou annulation d'un job, indicateur d'état de l'agent toujours visible, accès aux réglages de l'événement et à l'export. Confirmation avant toute action irréversible.
+
+## Socle visuel (SCRUM-36)
+
+Socle volontairement minimal, en attendant les écrans du designer. Toutes les couleurs vivent dans `apps/web/lib/ui/tokens.ts` : changer une valeur s'applique à toute l'application. Les composants de base sont dans `apps/web/components/ui/`, visibles sur `/dev/ui` en local.
