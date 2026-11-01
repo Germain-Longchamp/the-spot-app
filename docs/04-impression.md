@@ -93,10 +93,12 @@ L'agent exige Node 22 : il plante au démarrage sous Node 20. Il interroge Supab
 
 ## Heartbeat et statut visible
 
-- L'agent envoie un signal de vie régulier ; l'heure du serveur fait foi (pas celle de l'ordinateur du salon)
+- L'agent envoie un signal de vie toutes les 15 s, y compris pendant une impression ; l'heure du serveur fait foi (pas celle de l'ordinateur du salon)
+- Le signal ne maintient que le job en cours de traitement, pour sa tentative : après un plantage, l'ancien job passe en `STUCK` même si l'agent redémarre aussitôt sous le même nom
 - Au-delà de 60 s sans signal : agent « hors ligne » ; les jobs en `PRINTING` passent en `STUCK`
 - L'indicateur d'état est **toujours visible** sur l'écran d'impression de l'invité et sur le panneau opérateur
-- Il ne doit pas clignoter pour un retard bref (tolérance à la latence)
+- Il ne doit pas clignoter pour un retard bref : le seuil de 60 s tolère plusieurs signaux perdus, et un seul contrôle raté côté téléphone ne change rien
+- Le téléphone interroge le statut toutes les 10 s. Après 3 échecs, il affiche qu'il ne peut pas vérifier l'imprimante
 - Textes : « L'imprimante est connectée » / « L'imprimante n'est pas connectée pour le moment »
 - Couleurs : teal pour en ligne, rouge pour hors ligne ou erreur
 

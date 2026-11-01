@@ -17,6 +17,7 @@ import {
   JobStore,
   processNextJob,
   runAgent,
+  runHeartbeat,
   WorkerDeps,
 } from "../../print-agent/src/worker";
 import { Fixture, TestDb } from "./support/test-db";
@@ -81,6 +82,16 @@ class DbStore implements JobStore {
     );
     return answer.result;
   }
+
+  async heartbeat(job: ClaimedJob | null) {
+    await db.service(
+      "record_agent_heartbeat",
+      this.eventId,
+      this.agentId,
+      job?.jobId ?? null,
+      job?.attempt ?? null
+    );
+  }
 }
 
 class CountingPrinter implements Printer {
@@ -132,6 +143,7 @@ function workerDeps(
     log: { info: (m) => logs.push(m), error: (m) => logs.push(m) },
     sleep: async () => undefined,
     printOptions: { copies: 1 },
+    activeJob: { current: null },
     shouldStop: () => false,
     downloadAttempts: 3,
     retryDelayMs: 1,
@@ -477,6 +489,97 @@ test.describe("connexion perdue", () => {
   });
 });
 
+test.describe("signal de vie", () => {
+  const silence = (id: string) =>
+    db.admin.query(
+      `update public.print_jobs
+       set last_activity_at = now() - interval '61 seconds' where id = $1`,
+      [id]
+    );
+
+  /** Printing takes over a minute: the job must not go STUCK meanwhile. */
+  test("une impression longue reste en PRINTING", async () => {
+    const { fixture, jobId } = await authorizedJob();
+    const store = new DbStore(fixture.eventId);
+    let during = "";
+    const deps = workerDeps(store, new CountingPrinter(async () => {
+      await silence(jobId);
+      await store.heartbeat(deps.activeJob.current);
+      await db.service("mark_stuck_jobs");
+      during = (await jobRow(jobId)).status;
+      return { ok: true };
+    }));
+
+    await processNextJob(deps);
+
+    expect(during).toBe("PRINTING");
+    expect((await jobRow(jobId)).status).toBe("DONE");
+  });
+
+  /**
+   * The restarted agent has the same name as the one that crashed: its signs
+   * of life must not keep the old job alive, or it would never go STUCK.
+   */
+  test("après un plantage, le job passe en STUCK malgré le redémarrage", async () => {
+    const { fixture, jobId } = await authorizedJob();
+    await new DbStore(fixture.eventId).claim();
+    await silence(jobId);
+
+    const restarted = workerDeps(
+      new DbStore(fixture.eventId),
+      new CountingPrinter()
+    );
+    await restarted.store.heartbeat(restarted.activeJob.current);
+    await db.service("mark_stuck_jobs");
+
+    expect((await jobRow(jobId)).status).toBe("STUCK");
+  });
+
+  test("un job abandonné ne reste pas en vie", async () => {
+    const { fixture, jobId } = await authorizedJob();
+    const store = new DbStore(fixture.eventId);
+    store.isCurrent = async () => {
+      throw new Error("réseau");
+    };
+    const deps = workerDeps(store, new CountingPrinter());
+
+    expect(await processNextJob(deps)).toBe("abandoned");
+
+    expect(deps.activeJob.current).toBeNull();
+    await silence(jobId);
+    await store.heartbeat(deps.activeJob.current);
+    await db.service("mark_stuck_jobs");
+    expect((await jobRow(jobId)).status).toBe("STUCK");
+  });
+
+  test("le job actif est libéré après une impression", async () => {
+    const { fixture } = await authorizedJob();
+    const deps = workerDeps(new DbStore(fixture.eventId), new CountingPrinter());
+
+    await processNextJob(deps);
+
+    expect(deps.activeJob.current).toBeNull();
+  });
+
+  test("le signal survit à une coupure et continue", async () => {
+    const f = await db.seed();
+    const store = new DbStore(f.eventId);
+    let calls = 0;
+    store.heartbeat = async () => {
+      calls++;
+      if (calls === 1) throw new Error("réseau");
+    };
+    let ticks = 0;
+    const deps = workerDeps(store, new CountingPrinter(), {
+      shouldStop: () => ticks++ >= 3,
+    });
+
+    await runHeartbeat(deps, 1);
+
+    expect(calls).toBe(3);
+  });
+});
+
 test.describe("journaux", () => {
   test("aucun chemin de photo ni contenu d'image dans les journaux", async () => {
     const { fixture } = await authorizedJob();
@@ -578,6 +681,35 @@ test.describe("connexion à Supabase", () => {
         p_detail: "Papier épuisé",
       },
     });
+  });
+
+  test("le signal de vie précise l'agent et le job en cours", async () => {
+    const { client, rpcCalls } = fakeClient({ rpc: { data: null, error: null } });
+    const store = new SupabaseJobStore(client, config);
+
+    await store.heartbeat(job);
+    await store.heartbeat(null);
+
+    expect(rpcCalls).toEqual([
+      {
+        fn: "record_agent_heartbeat",
+        args: {
+          p_event_id: "e1",
+          p_agent_id: "a1",
+          p_job_id: "j1",
+          p_attempt: 2,
+        },
+      },
+      {
+        fn: "record_agent_heartbeat",
+        args: {
+          p_event_id: "e1",
+          p_agent_id: "a1",
+          p_job_id: null,
+          p_attempt: null,
+        },
+      },
+    ]);
   });
 
   /** Cas limite : URL signée expirée, nouvelle URL demandée. */

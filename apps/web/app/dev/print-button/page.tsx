@@ -8,7 +8,10 @@ export default function PrintButtonDevPage() {
 
   return (
     <main className="mx-auto max-w-sm p-4">
-      <PrintButton photoId="00000000-0000-4000-8000-000000000001" />
+      <PrintButton
+        photoId="00000000-0000-4000-8000-000000000001"
+        eventId="00000000-0000-4000-8000-000000000002"
+      />
     </main>
   );
 }
