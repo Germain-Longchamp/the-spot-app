@@ -75,6 +75,7 @@ Source de vérité du backlog : Jira, site `glongchamp8.atlassian.net`, projet *
   - `cd apps/print-agent && npm run lint && npm run build` — vérifier l'agent d'impression
   - Variables d'env : copier `apps/web/.env.example` → `apps/web/.env.local`
 - Intégration continue : GitHub Actions (`.github/workflows/ci.yml`), à chaque push sur toute branche. Lance les vérifications ci-dessus, sans relance automatique des tests.
+- Tests de base de données : Postgres 17 embarqué (`apps/web/e2e/support/test-db.ts`), sans Docker. Il rejoue `supabase/migrations/` sur une reproduction des rôles et droits de Supabase (`supabase-stub.sql`). Les vrais services Supabase (Auth, Storage, Realtime) n'y sont pas.
 - Vercel : le répertoire racine `apps/web` se règle dans les paramètres du projet Vercel, pas dans un fichier du dépôt.
 
 ## Structure du dépôt (SCRUM-39)
