@@ -30,14 +30,17 @@ Statuts : `PENDING → PRINTING → DONE / STUCK / FAILED`
 | PRINTING | FAILED | Erreur d'impression avec un motif |
 | PRINTING | STUCK | Plus de signe de vie de l'agent depuis 60 s (`pg_cron`) |
 | STUCK | PENDING | Réessai manuel par l'opérateur |
+| STUCK | DONE | L'agent revient et confirme sa tentative, sans réessai entre-temps |
 | FAILED | PENDING | Réessai manuel par l'opérateur |
 
-Interdit : toute transition depuis `DONE`. Les transitions passent par une **fonction serveur unique et atomique** (RPC). L'historique de chaque transition est conservé, avec l'heure du serveur.
+Interdit : toute transition depuis `DONE`. Les transitions passent par une **fonction serveur unique et atomique** (`transition_print_job`). L'historique de chaque transition est conservé, avec l'heure du serveur, ainsi que les demandes refusées.
+
+Chaque prise de job incrémente un numéro de tentative, que l'agent doit rappeler dans ses comptes rendus.
 
 Cas à traiter explicitement :
 - deux agents tentent de prendre le même job → un seul réussit (verrou) ;
 - l'agent plante en plein `PRINTING` → le job passe en `STUCK` ; la photo est peut-être déjà sortie, l'opérateur décide du réessai ;
-- réponse `DONE` tardive après un passage en `STUCK` → règle de résolution à écrire et à faire relire par Germain.
+- réponse `DONE` tardive après un passage en `STUCK` → **acceptée** si le job est encore `STUCK` sur la même tentative : la photo est sortie, et un réessai l'imprimerait deux fois. Après un réessai, l'annonce est ignorée et tracée (décision de Germain, SCRUM-22).
 
 ## Contrôle manuel en v1
 

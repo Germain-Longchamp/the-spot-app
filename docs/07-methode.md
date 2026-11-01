@@ -15,7 +15,7 @@
 6. Intégration continue : lint, types, tests, build
 7. Pull request avec : résumé, scénarios couverts, hypothèses prises, points à relire
 8. Relecture de Germain, puis fusion
-9. Mise à jour du statut Jira, **uniquement sur demande**
+9. Statut Jira : « En cours » au démarrage et « Test » à l'ouverture de la PR, par Claude ; « Terminé(e) » par Germain
 
 ## Panels de la charte Jira
 

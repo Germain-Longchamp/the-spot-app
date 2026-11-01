@@ -16,7 +16,7 @@ Source de vérité du backlog : Jira, site `glongchamp8.atlassian.net`, projet *
 - **Frontend** : Next.js 14 (App Router)
 - **Backend / données** : Supabase — authentification anonyme, Postgres avec **RLS**, Storage, Realtime
 - **Agent d'impression** : démon Node.js géré par PM2, sur l'ordinateur branché à l'imprimante
-- **Tâches planifiées** : `pg_cron` + fonction Edge (passage des jobs en STUCK après 60 s sans signe de vie)
+- **Tâches planifiées** : `pg_cron` appelant directement une fonction SQL (passage des jobs en STUCK après 60 s sans signe de vie)
 - **Imprimante** : imprimante photo professionnelle fournie par le client ; **modèle encore inconnu** (voir « Points ouverts »)
 
 ## Règles non négociables
@@ -47,7 +47,7 @@ Source de vérité du backlog : Jira, site `glongchamp8.atlassian.net`, projet *
 - **Ordre de construction** : socle (SCRUM-39) → pipeline d'impression avec imprimante simulée (SCRUM-21 à 24) → accès et événement → capture/import → galerie → opérateur et réglages → export, purge → design et logo en parallèle. Le pipeline d'impression passe **avant** l'interface.
 - **Une story Jira = une branche = une revue de Germain.** Tranches verticales (de l'écran à la base), jamais « tout le back puis tout le front ».
 - **Les critères Gherkin de chaque story deviennent des tests automatisés.** Sans test correspondant, la story n'est pas terminée.
-- **Jira** : quand Germain dit « implémente SCRUM-xx », lis la story via le connecteur Atlassian (description, panels, critères). Ne change son statut que sur demande.
+- **Jira** : quand Germain dit « implémente SCRUM-xx », lis la story via le connecteur Atlassian (description, panels, critères). Passe-la en « En cours » au démarrage et en « Test » à l'ouverture de la PR. Le passage en « Terminé(e) » revient à Germain.
 - **Hypothèses** : les stories contiennent des lignes « Hypothèse à confirmer avec Germain ». **N'invente jamais la réponse** : pose la question, ou implémente la solution la plus simple en la signalant clairement dans la description de la PR.
 - **Relecture obligatoire par Germain** pour : règles RLS, verrou et transitions des jobs, quota d'impressions, droits opérateur, export, purge. Signale-les dans la PR.
 - Aucune nouvelle fonctionnalité dans les deux dernières semaines avant le salon : corrections uniquement.

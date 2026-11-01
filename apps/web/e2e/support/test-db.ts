@@ -27,7 +27,7 @@ export interface Fixture {
   photoId: string;
 }
 
-export type Role = "anon" | "authenticated";
+export type Role = "anon" | "authenticated" | "service_role";
 
 /** A real Postgres with the repo's migrations applied, on a throwaway disk. */
 export class TestDb {
@@ -117,6 +117,21 @@ export class TestDb {
         [photoId, key]
       );
       return rows[0].result as { result: string; job_id?: string };
+    });
+  }
+
+  /** Calls a print pipeline function the way the agent or a server action does. */
+  async service<T = Record<string, unknown>>(
+    fn: string,
+    ...args: unknown[]
+  ): Promise<T> {
+    return this.as("service_role", null, async (client) => {
+      const params = args.map((_, i) => `$${i + 1}`).join(", ");
+      const { rows } = await client.query(
+        `select public.${fn}(${params}) as result`,
+        args
+      );
+      return rows[0].result as T;
     });
   }
 
