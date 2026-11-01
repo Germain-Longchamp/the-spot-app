@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/ui/error-message";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 
 interface Props {
@@ -7,9 +8,18 @@ interface Props {
   token: string;
   onTakePhoto?: () => void;
   onImportPhoto?: () => void;
+  importing?: boolean;
+  importError?: string | null;
 }
 
-export function EventHome({ event, token, onTakePhoto, onImportPhoto }: Props) {
+export function EventHome({
+  event,
+  token,
+  onTakePhoto,
+  onImportPhoto,
+  importing = false,
+  importError = null,
+}: Props) {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-4">
       <div className="flex flex-col gap-2">
@@ -21,8 +31,12 @@ export function EventHome({ event, token, onTakePhoto, onImportPhoto }: Props) {
 
       <div className="flex flex-col gap-3">
         <Button onClick={onTakePhoto}>Prendre une photo</Button>
-        <Button onClick={onImportPhoto}>Importer une photo</Button>
+        <Button onClick={onImportPhoto} loading={importing}>
+          Importer une photo
+        </Button>
       </div>
+
+      {importError && <ErrorMessage>{importError}</ErrorMessage>}
 
       {event.galleryVisible && (
         <Link href={`/e/${token}/galerie`} className="min-h-12 py-3 text-center underline">

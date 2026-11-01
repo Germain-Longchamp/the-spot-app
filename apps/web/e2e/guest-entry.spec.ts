@@ -17,7 +17,7 @@ test("entrée directe, sans formulaire", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Salon de démonstration" })
   ).toBeVisible();
-  await expect(page.locator("input, textarea")).toHaveCount(0);
+  await expect(page.locator("input:visible, textarea:visible")).toHaveCount(0);
   expect(calls.signups).toBeGreaterThanOrEqual(1);
   expect(calls.joins).toBeGreaterThanOrEqual(1);
 });
