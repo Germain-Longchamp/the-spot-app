@@ -45,7 +45,7 @@ Identité anonyme d'un invité, rattachée à une session Supabase anonyme.
 | id | uuid | |
 | event_id, photo_id, guest_id | uuid | |
 | status | enum `PENDING` / `PRINTING` / `DONE` / `STUCK` / `FAILED` | |
-| idempotency_key | text | unique |
+| idempotency_key | text | unique par invité |
 | authorized_at | timestamptz | autorisation de l'opérateur (hypothèse, voir `04-impression.md`) |
 | claimed_by | text | identifiant de l'agent qui a verrouillé le job |
 | last_error | text | motif d'échec |
