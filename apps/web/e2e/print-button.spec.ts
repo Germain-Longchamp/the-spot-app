@@ -22,6 +22,12 @@ async function answerWith(page: Page, result: string) {
 
 const button = (page: Page) => page.getByRole("button", { name: "Imprimer" });
 
+test.beforeEach(async ({ page }) => {
+  await page.route("**/rest/v1/rpc/get_printer_status", (route) =>
+    route.fulfill({ status: 200, headers: cors, json: true })
+  );
+});
+
 /**
  * Scenario: Demande valide
  *   Then je vois un message de confirmation

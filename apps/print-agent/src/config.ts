@@ -7,6 +7,7 @@ export interface AgentConfig {
   agentId: string;
   bucket: string;
   pollIntervalMs: number;
+  heartbeatIntervalMs: number;
   simulatedDelayMs: number;
   simulatedOutcome: "success" | "failure";
 }
@@ -29,6 +30,7 @@ export function loadConfig(env: Env): AgentConfig {
     agentId: env.AGENT_ID || hostname(),
     bucket: env.PHOTOS_BUCKET || "photos",
     pollIntervalMs: Number(env.POLL_INTERVAL_MS) || 2000,
+    heartbeatIntervalMs: Number(env.HEARTBEAT_INTERVAL_MS) || 15_000,
     simulatedDelayMs: Number(env.SIMULATED_PRINTER_DELAY_MS) || 3000,
     simulatedOutcome:
       env.SIMULATED_PRINTER_OUTCOME === "failure" ? "failure" : "success",

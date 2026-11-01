@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { PrinterStatus } from "@/components/printer-status";
 import { createClient } from "@/lib/supabase/client";
 import {
   canRetry,
@@ -26,7 +27,13 @@ function idempotencyKeyFor(photoId: string): string {
   }
 }
 
-export function PrintButton({ photoId }: { photoId: string }) {
+export function PrintButton({
+  photoId,
+  eventId,
+}: {
+  photoId: string;
+  eventId: string;
+}) {
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<PrintRequestOutcome | null>(null);
   // A ref, not state: a double tap fires before React re-renders the button.
@@ -50,6 +57,7 @@ export function PrintButton({ photoId }: { photoId: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <PrinterStatus eventId={eventId} />
       <button
         type="button"
         onClick={handlePress}

@@ -124,4 +124,14 @@ export class SupabaseJobStore implements JobStore {
     if (error) throw new Error(error.message);
     return String(data?.result);
   }
+
+  async heartbeat(job: ClaimedJob | null): Promise<void> {
+    const { error } = await this.client.rpc("record_agent_heartbeat", {
+      p_event_id: this.config.eventId,
+      p_agent_id: this.config.agentId,
+      p_job_id: job?.jobId ?? null,
+      p_attempt: job?.attempt ?? null,
+    });
+    if (error) throw new Error(error.message);
+  }
 }

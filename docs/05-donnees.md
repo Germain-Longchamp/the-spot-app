@@ -88,6 +88,8 @@ Points à faire relire par Germain : isolation entre événements, visibilité d
 - `transition_print_job` : seule voie de changement de statut, avec contrôle des transitions (rôle service uniquement)
 - `claim_print_job` : verrouille un job pour un agent
 - `mark_stuck_jobs` : appelée par `pg_cron` toutes les 10 s, passe en `STUCK` les jobs sans activité depuis 60 s
+- `record_agent_heartbeat` : signal de vie de l'agent et de son job en cours (rôle service uniquement)
+- `get_printer_status` : vrai si un agent de l'événement a donné signe de vie depuis moins de 60 s
 - `delete_photo`, `purge_event` : suppressions cohérentes, avec trace
 
 ## Rétention

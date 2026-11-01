@@ -20,6 +20,8 @@ export interface JobStore {
   downloadImage(storagePath: string): Promise<Buffer>;
   /** Throws only when the answer did not reach us. Returns the server's answer. */
   report(job: ClaimedJob, status: JobReport, detail?: string): Promise<string>;
+  /** Signs of life for the agent and for the job it is working on, if any. */
+  heartbeat(job: ClaimedJob | null): Promise<void>;
 }
 
 /** Job ids and technical messages only: never a photo or personal data. */
@@ -34,6 +36,8 @@ export interface WorkerDeps {
   log: Logger;
   sleep: (ms: number) => Promise<void>;
   printOptions: PrintOptions;
+  /** The job being worked on right now, read by the heartbeat. */
+  activeJob: { current: ClaimedJob | null };
   /** Tells the report loop to give up, so that the process can stop. */
   shouldStop: () => boolean;
   downloadAttempts: number;
@@ -112,6 +116,18 @@ export async function processNextJob(deps: WorkerDeps): Promise<JobOutcome> {
   if (!job) return "idle";
   deps.log.info(`job ${job.jobId}: tentative ${job.attempt}`);
 
+  deps.activeJob.current = job;
+  try {
+    return await handleJob(deps, job);
+  } finally {
+    deps.activeJob.current = null;
+  }
+}
+
+async function handleJob(
+  deps: WorkerDeps,
+  job: ClaimedJob
+): Promise<JobOutcome> {
   const image = await fetchImage(deps, job);
   if (!Buffer.isBuffer(image)) {
     await reportResult(deps, job, "FAILED", image.failure);
@@ -139,6 +155,25 @@ export async function processNextJob(deps: WorkerDeps): Promise<JobOutcome> {
   }
   await reportResult(deps, job, "FAILED", result.reason);
   return "failed";
+}
+
+/**
+ * Runs beside the job loop, so that a long print keeps sending signs of life.
+ * Only the job in memory is kept alive: after a crash and a restart, the old
+ * job is unknown to this process and goes STUCK, as it should.
+ */
+export async function runHeartbeat(
+  deps: WorkerDeps,
+  intervalMs: number
+): Promise<void> {
+  while (!deps.shouldStop()) {
+    try {
+      await deps.store.heartbeat(deps.activeJob.current);
+    } catch {
+      deps.log.error("signal de vie non transmis");
+    }
+    await deps.sleep(intervalMs);
+  }
 }
 
 export async function runAgent(
