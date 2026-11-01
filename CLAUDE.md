@@ -72,14 +72,18 @@ Source de vérité du backlog : Jira, site `glongchamp8.atlassian.net`, projet *
   - `cd apps/web && npm run lint` — ESLint
   - `cd apps/web && npm run type-check` — TypeScript strict
   - `cd apps/web && npm test` — tests Playwright (lance le serveur automatiquement)
+  - `cd apps/print-agent && npm run lint && npm run build` — vérifier l'agent d'impression
   - Variables d'env : copier `apps/web/.env.example` → `apps/web/.env.local`
+- Intégration continue : GitHub Actions (`.github/workflows/ci.yml`), à chaque push sur toute branche. Lance les vérifications ci-dessus, sans relance automatique des tests.
+- Vercel : le répertoire racine `apps/web` se règle dans les paramètres du projet Vercel, pas dans un fichier du dépôt.
 
 ## Structure du dépôt (SCRUM-39)
 
 ```
 the-spot/
   CLAUDE.md
-  vercel.json           déploiement preview automatique (Vercel)
+  .github/workflows/    intégration continue (GitHub Actions)
+  .nvmrc                version de Node (22, requise par supabase-js)
   .gitignore
   docs/                 documentation produit et technique
   apps/web/             application Next.js 14 (App Router)
