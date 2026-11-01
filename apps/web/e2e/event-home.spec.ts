@@ -1,0 +1,91 @@
+import { test, expect } from "@playwright/test";
+import { mockGuestBackend } from "./support/guest-mocks";
+
+const URL = "/e/jeton-de-test";
+
+/**
+ * Scenario: Accueil nominal
+ *   Then je vois le nom de l'événement
+ *   And les boutons "Prendre une photo" et "Importer une photo"
+ */
+test("accueil nominal", async ({ page }) => {
+  await mockGuestBackend(page);
+  await page.goto(URL);
+
+  await expect(
+    page.getByRole("heading", { name: "Salon de démonstration" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Prendre une photo" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Importer une photo" })
+  ).toBeVisible();
+});
+
+test("les deux actions sont visibles sans défiler, à la même taille", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await mockGuestBackend(page);
+  await page.goto(URL);
+
+  const take = page.getByRole("button", { name: "Prendre une photo" });
+  const load = page.getByRole("button", { name: "Importer une photo" });
+  await expect(take).toBeInViewport({ ratio: 1 });
+  await expect(load).toBeInViewport({ ratio: 1 });
+
+  const [a, b] = [await take.boundingBox(), await load.boundingBox()];
+  expect(a?.width).toBe(b?.width);
+  expect(a?.height).toBe(b?.height);
+});
+
+/**
+ * Scenario: Galerie masquée
+ *   Given la galerie n'est pas visible
+ *   Then aucun lien vers la galerie n'est affiché
+ */
+test("galerie masquée : aucun lien", async ({ page }) => {
+  await mockGuestBackend(page);
+  await page.goto(URL);
+  await expect(page.getByRole("heading")).toBeVisible();
+
+  await expect(page.getByRole("link", { name: "galerie" })).toHaveCount(0);
+});
+
+test("galerie visible : le lien apparaît", async ({ page }) => {
+  await mockGuestBackend(page, { event: { gallery_visible: true } });
+  await page.goto(URL);
+
+  await expect(
+    page.getByRole("link", { name: "Voir la galerie" })
+  ).toBeVisible();
+});
+
+/**
+ * Scenario: Événement clôturé
+ *   Then je vois un message indiquant que l'événement est terminé
+ *   And aucune action de photo n'est proposée
+ */
+test("événement clôturé : aucune action", async ({ page }) => {
+  await mockGuestBackend(page, { entry: "closed" });
+  await page.goto(URL);
+
+  await expect(page.getByText("Cet événement est terminé")).toBeVisible();
+  await expect(page.getByRole("button")).toHaveCount(0);
+});
+
+/** Cas limite : nom d'événement très long. */
+test("un nom très long ne casse pas la page", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await mockGuestBackend(page, {
+    event: { name: "Rendez-vous-professionnel-international-".repeat(4) },
+  });
+  await page.goto(URL);
+  await expect(page.getByRole("heading")).toBeVisible();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth
+  );
+  expect(overflow).toBe(false);
+});

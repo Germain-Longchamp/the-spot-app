@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { EventHome } from "@/components/guest/event-home";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { EntryOutcome, enterEvent } from "@/lib/guest/enter-event";
@@ -54,9 +55,5 @@ export function GuestApp({ token }: { token: string }) {
 
   if (entry.kind !== "joined") return <Message>{messages[entry.kind]}</Message>;
 
-  return (
-    <main className="mx-auto flex max-w-sm flex-col gap-4 p-4">
-      <h1 className="text-2xl font-semibold break-words">{entry.event.name}</h1>
-    </main>
-  );
+  return <EventHome event={entry.event} token={token} />;
 }
