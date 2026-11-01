@@ -29,7 +29,7 @@ test("imprimante connectée", async ({ page }) => {
   await page.goto("/dev/print-button");
 
   await expect(indicator(page)).toHaveText("L'imprimante est connectée");
-  await expect(indicator(page).locator("span")).toHaveClass(/bg-teal-500/);
+  await expect(indicator(page).locator("span")).toHaveClass(/bg-success/);
 });
 
 /**
@@ -43,7 +43,7 @@ test("imprimante hors ligne", async ({ page }) => {
   await expect(indicator(page)).toHaveText(
     "L'imprimante n'est pas connectée pour le moment"
   );
-  await expect(indicator(page).locator("span")).toHaveClass(/bg-red-600/);
+  await expect(indicator(page).locator("span")).toHaveClass(/bg-danger/);
 });
 
 test("l'indicateur est visible dès l'écran d'impression", async ({ page }) => {
