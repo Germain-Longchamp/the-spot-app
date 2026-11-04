@@ -14,11 +14,12 @@ type Screen =
 
 interface Props {
   event: GuestEvent;
+  guestId: string;
   token: string;
 }
 
 /** The steps stay on one page: the photo must not leave the phone before the guest validates it. */
-export function GuestFlow({ event, token }: Props) {
+export function GuestFlow({ event, guestId, token }: Props) {
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -66,7 +67,13 @@ export function GuestFlow({ event, token }: Props) {
       )}
 
       {screen.name === "preview" && (
-        <PhotoPreview photo={screen.photo} onRetake={home} />
+        <PhotoPreview
+          photo={screen.photo}
+          eventId={event.id}
+          guestId={guestId}
+          galleryVisible={event.galleryVisible}
+          onDone={home}
+        />
       )}
 
       {screen.name === "home" && (

@@ -11,7 +11,8 @@ export type PrintRequestOutcome =
   | "unexpected_error";
 
 export const printRequestMessages: Record<PrintRequestOutcome, string> = {
-  created: "C'est noté ! L'équipe va lancer l'impression de votre photo.",
+  created:
+    "C'est noté ! L'équipe va lancer l'impression. Votre photo sera à récupérer près de l'imprimante.",
   print_limit_reached:
     "Le nombre maximum d'impressions de cet événement est atteint.",
   request_cancelled:

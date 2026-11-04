@@ -55,5 +55,5 @@ export function GuestApp({ token }: { token: string }) {
 
   if (entry.kind !== "joined") return <Message>{messages[entry.kind]}</Message>;
 
-  return <GuestFlow event={entry.event} token={token} />;
+  return <GuestFlow event={entry.event} guestId={entry.guestId} token={token} />;
 }
