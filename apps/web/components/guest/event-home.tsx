@@ -10,6 +10,8 @@ interface Props {
   onImportPhoto?: () => void;
   importing?: boolean;
   importError?: string | null;
+  /** Shown below the main actions, so they stay first on screen. */
+  children?: React.ReactNode;
 }
 
 export function EventHome({
@@ -19,6 +21,7 @@ export function EventHome({
   onImportPhoto,
   importing = false,
   importError = null,
+  children,
 }: Props) {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-4">
@@ -43,6 +46,8 @@ export function EventHome({
           Voir la galerie
         </Link>
       )}
+
+      {children}
     </main>
   );
 }
