@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Camera } from "@/components/guest/camera";
 import { EventHome } from "@/components/guest/event-home";
+import { MyPhotos } from "@/components/guest/my-photos";
 import { PhotoPreview } from "@/components/guest/photo-preview";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 import { importPhoto } from "@/lib/guest/import-photo";
@@ -84,7 +85,10 @@ export function GuestFlow({ event, guestId, token }: Props) {
           importError={importError}
           onTakePhoto={() => setScreen({ name: "camera" })}
           onImportPhoto={chooseFile}
-        />
+        >
+          {/* Remounted on each return home, so a new photo shows up at once. */}
+          <MyPhotos eventId={event.id} />
+        </EventHome>
       )}
     </>
   );
