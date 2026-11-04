@@ -38,13 +38,23 @@ function idempotencyKeyFor(photoId: string): string {
   }
 }
 
+interface Props {
+  photoId: string;
+  eventId: string;
+  /** Why printing is impossible for now, if it is. */
+  unavailable?: string | null;
+  /** Runs first: the print only starts if it returns true. */
+  beforePrint?: () => Promise<boolean>;
+  onCreated?: () => void;
+}
+
 export function PrintButton({
   photoId,
   eventId,
-}: {
-  photoId: string;
-  eventId: string;
-}) {
+  unavailable = null,
+  beforePrint,
+  onCreated,
+}: Props) {
   const [sending, setSending] = useState(false);
   const [outcome, setOutcome] = useState<PrintRequestOutcome | null>(null);
   // A ref, not state: a double tap fires before React re-renders the button.
@@ -55,6 +65,13 @@ export function PrintButton({
     if (inFlight.current) return;
     inFlight.current = true;
     setSending(true);
+
+    if (beforePrint && !(await beforePrint())) {
+      setSending(false);
+      inFlight.current = false;
+      return;
+    }
+
     key.current ??= idempotencyKeyFor(photoId);
 
     const result = await requestPrint(createClient(), photoId, key.current);
@@ -64,6 +81,8 @@ export function PrintButton({
       key.current = null;
       forgetKey(photoId);
     }
+
+    if (result === "created") onCreated?.();
 
     setOutcome(result);
     setSending(false);
@@ -75,13 +94,16 @@ export function PrintButton({
   return (
     <div className="flex flex-col gap-3">
       <PrinterStatus eventId={eventId} />
-      <Button onClick={handlePress} disabled={sending || finished}>
+      <Button
+        onClick={handlePress}
+        disabled={sending || finished || unavailable !== null}
+      >
         Imprimer
       </Button>
       <p role="status" aria-live="polite">
         {sending
           ? "Envoi de votre demande…"
-          : outcome && printRequestMessages[outcome]}
+          : (outcome && printRequestMessages[outcome]) ?? unavailable}
       </p>
     </div>
   );

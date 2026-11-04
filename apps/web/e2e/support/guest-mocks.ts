@@ -75,3 +75,56 @@ export async function mockGuestBackend(page: Page, backend: GuestBackend = {}) {
 
   return calls;
 }
+
+export const GUEST_ID = "33333333-3333-4333-8333-333333333333";
+
+interface PhotoBackend {
+  availability?: string;
+  uploadFailures?: number;
+  uploadDelayMs?: number;
+  uploadStatus?: number;
+}
+
+/** Fakes the upload and the requests that follow it. */
+export async function mockPhotoBackend(page: Page, backend: PhotoBackend = {}) {
+  const calls = {
+    uploads: [] as { path: string; body: Buffer | null; auth?: string }[],
+    registers: [] as Record<string, unknown>[],
+    prints: [] as Record<string, unknown>[],
+  };
+
+  await page.route("**/rest/v1/rpc/get_printer_status", (route) =>
+    json(route, true)
+  );
+  await page.route("**/rest/v1/rpc/get_print_availability", (route) =>
+    json(route, backend.availability ?? "available")
+  );
+  await page.route("**/storage/v1/object/photos/**", async (route) => {
+    const request = route.request();
+    if (request.method() !== "POST") return route.fallback();
+    if ((backend.uploadFailures ?? 0) > 0) {
+      backend.uploadFailures! -= 1;
+      calls.uploads.push({ path: request.url(), body: null });
+      return route.abort("internetdisconnected");
+    }
+    calls.uploads.push({
+      path: new globalThis.URL(request.url()).pathname,
+      body: request.postDataBuffer(),
+      auth: request.headers().authorization,
+    });
+    if (backend.uploadDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, backend.uploadDelayMs));
+    }
+    return json(route, { Key: "x" }, backend.uploadStatus ?? 200);
+  });
+  await page.route("**/rest/v1/rpc/register_photo", (route) => {
+    calls.registers.push(route.request().postDataJSON());
+    return json(route, { result: "created" });
+  });
+  await page.route("**/rest/v1/rpc/create_print_job", (route) => {
+    calls.prints.push(route.request().postDataJSON());
+    return json(route, { result: "created", job_id: "job-1" });
+  });
+
+  return calls;
+}
