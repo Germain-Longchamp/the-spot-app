@@ -27,6 +27,7 @@ function fakeJwt() {
 export const TEST_EVENT = {
   id: "22222222-2222-4222-8222-222222222222",
   name: "Salon de démonstration",
+  gallery_enabled: true,
   gallery_visible: false,
 };
 

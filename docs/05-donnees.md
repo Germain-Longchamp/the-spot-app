@@ -13,7 +13,8 @@ Ce schéma est une **proposition de départ** déduite des stories. Il n'a pas �
 | access_token | text | unique, aléatoire, non devinable |
 | short_code | text | unique, saisissable en secours |
 | status | enum `open` / `closed` | |
-| gallery_visibility | enum `visible` / `hidden` | |
+| gallery_enabled | boolean | l'événement a une galerie : l'invité peut publier (SCRUM-28) |
+| gallery_visible | boolean | la galerie est ouverte : les invités peuvent la consulter |
 | print_limit | int | quota d'impressions de l'événement ; vide = pas de limite |
 | printing_paused | bool | pause globale par l'opérateur |
 | created_at, closed_at | timestamptz | |

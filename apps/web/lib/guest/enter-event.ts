@@ -3,6 +3,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export interface GuestEvent {
   id: string;
   name: string;
+  /** The event has a gallery: guests may choose to publish. */
+  galleryEnabled: boolean;
+  /** The gallery is open: guests may look at it. */
   galleryVisible: boolean;
 }
 
@@ -45,6 +48,7 @@ export async function enterEvent(
       event: {
         id: data.event.id,
         name: data.event.name,
+        galleryEnabled: data.event.gallery_enabled ?? false,
         galleryVisible: data.event.gallery_visible,
       },
     };

@@ -25,6 +25,7 @@ interface Props {
   photo: Blob;
   eventId: string;
   guestId: string;
+  galleryEnabled: boolean;
   galleryVisible: boolean;
   onDone: () => void;
 }
@@ -33,6 +34,7 @@ export function PhotoPreview({
   photo,
   eventId,
   guestId,
+  galleryEnabled,
   galleryVisible,
   onDone,
 }: Props) {
@@ -80,7 +82,7 @@ export function PhotoPreview({
         photoId,
         eventId,
         guestId,
-        published: galleryVisible && published,
+        published: galleryEnabled && published,
         onProgress: setProgress,
         onRetry: () => setRetrying(true),
       });
@@ -110,7 +112,7 @@ export function PhotoPreview({
         <img src={url} alt="Votre photo" className="w-full rounded-lg" />
       )}
 
-      {!done && galleryVisible && (
+      {!done && galleryEnabled && (
         <label className="flex min-h-12 items-center gap-3">
           <input
             type="checkbox"
@@ -159,9 +161,11 @@ export function PhotoPreview({
 
       {done && !printed && (
         <p role="status">
-          {published && galleryVisible
-            ? "Votre photo est bien envoyée et ajoutée à la galerie."
-            : "Votre photo est bien envoyée."}
+          {!(published && galleryEnabled)
+            ? "Votre photo est bien envoyée."
+            : galleryVisible
+              ? "Votre photo est bien envoyée et ajoutée à la galerie."
+              : "Votre photo est bien envoyée. Elle apparaîtra dans la galerie dès son ouverture."}
         </p>
       )}
 

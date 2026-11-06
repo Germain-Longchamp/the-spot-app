@@ -54,7 +54,12 @@ test("un invité rejoint l'événement de son token", async () => {
 
   expect(outcome).toMatchObject({
     result: "joined",
-    event: { id: f.eventId, name: "Salon test", gallery_visible: false },
+    event: {
+      id: f.eventId,
+      name: "Salon test",
+      gallery_enabled: true,
+      gallery_visible: false,
+    },
   });
   expect(outcome.guest_id).toBeTruthy();
 });

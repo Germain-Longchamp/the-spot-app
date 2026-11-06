@@ -73,6 +73,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
           photo={screen.photo}
           eventId={event.id}
           guestId={guestId}
+          galleryEnabled={event.galleryEnabled}
           galleryVisible={event.galleryVisible}
           onDone={home}
         />
