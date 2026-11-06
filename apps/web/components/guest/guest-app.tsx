@@ -5,7 +5,7 @@ import { GuestFlow } from "@/components/guest/guest-flow";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { Logo } from "@/components/ui/logo";
-import { EntryOutcome, enterEvent } from "@/lib/guest/enter-event";
+import { EntryOutcome, enterEvent, GuestEvent } from "@/lib/guest/enter-event";
 import { createClient } from "@/lib/supabase/client";
 
 const messages = {
@@ -33,7 +33,14 @@ function Message({
   );
 }
 
-export function GuestApp({ token }: { token: string }) {
+interface Props {
+  token: string;
+  /** What to show once the guest is in. The photo flow by default. */
+  children?: (event: GuestEvent, guestId: string) => React.ReactNode;
+}
+
+/** Enters the event from its link, then hands over to the screen asked for. */
+export function GuestApp({ token, children }: Props) {
   const [entry, setEntry] = useState<EntryOutcome | null>(null);
 
   const enter = useCallback(async () => {
@@ -57,5 +64,6 @@ export function GuestApp({ token }: { token: string }) {
 
   if (entry.kind !== "joined") return <Message>{messages[entry.kind]}</Message>;
 
+  if (children) return <>{children(entry.event, entry.guestId)}</>;
   return <GuestFlow event={entry.event} guestId={entry.guestId} token={token} />;
 }

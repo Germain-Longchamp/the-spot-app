@@ -45,7 +45,7 @@ export function EventHome({
 
       {importError && <ErrorMessage>{importError}</ErrorMessage>}
 
-      {event.galleryVisible && (
+      {event.galleryEnabled && event.galleryVisible && (
         <Link href={`/e/${token}/galerie`} className="min-h-12 py-3 text-center underline">
           Voir la galerie
         </Link>
