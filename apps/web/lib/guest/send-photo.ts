@@ -1,16 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
-import { targetSize } from "@/lib/guest/photo-size";
+import { targetSize, THUMB_SIDE_PX } from "@/lib/guest/photo-size";
 
 /** Provisional: the real value depends on the printer's paper (SCRUM-26). */
 const JPEG_QUALITY = 0.85;
+const THUMB_QUALITY = 0.7;
 
 const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000];
 const UPLOAD_TIMEOUT_MS = 60_000;
 
-export async function compressPhoto(photo: Blob): Promise<Blob> {
+export async function compressPhoto(
+  photo: Blob,
+  maxSide?: number,
+  quality = JPEG_QUALITY
+): Promise<Blob> {
   const bitmap = await createImageBitmap(photo);
-  const { width, height } = targetSize(bitmap.width, bitmap.height);
+  const { width, height } = targetSize(bitmap.width, bitmap.height, maxSide);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -22,7 +27,7 @@ export async function compressPhoto(photo: Blob): Promise<Blob> {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("compression"))),
       "image/jpeg",
-      JPEG_QUALITY
+      quality
     );
   });
 }
@@ -84,8 +89,13 @@ export async function sendPhoto(options: SendOptions): Promise<SendResult> {
   const path = `${eventId}/${guestId}/${photoId}.jpg`;
 
   let compressed: Blob;
+  // Only a published photo appears in the gallery, so only it needs a thumbnail.
+  let thumb: Blob | null = null;
   try {
     compressed = await compressPhoto(photo);
+    if (options.published) {
+      thumb = await compressPhoto(photo, THUMB_SIDE_PX, THUMB_QUALITY);
+    }
   } catch {
     return "failed";
   }
@@ -107,11 +117,20 @@ export async function sendPhoto(options: SendOptions): Promise<SendResult> {
         data.session.access_token,
         options.onProgress
       );
+      if (thumb) {
+        await uploadFile(
+          `${eventId}/${guestId}/${photoId}-thumb.jpg`,
+          thumb,
+          data.session.access_token,
+          () => {}
+        );
+      }
 
       const { data: registered, error } = await supabase.rpc("register_photo", {
         p_photo_id: photoId,
         p_event_id: eventId,
         p_published: options.published,
+        p_with_thumb: thumb !== null,
       });
       if (error) continue;
       if (registered?.result === "event_closed") return "event_closed";
