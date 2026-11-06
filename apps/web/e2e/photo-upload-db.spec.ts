@@ -83,7 +83,7 @@ test.describe("enregistrer une photo", () => {
   test("la publication est un choix de l'invité", async () => {
     const f = await db.seed();
     await db.admin.query(
-      "update public.events set gallery_visible = true where id = $1",
+      "update public.events set gallery_enabled = true where id = $1",
       [f.eventId]
     );
     const photoId = randomUUID();
@@ -100,7 +100,7 @@ test.describe("enregistrer une photo", () => {
   test("sans galerie, rien n'est publié même si on le demande", async () => {
     const f = await db.seed();
     await db.admin.query(
-      "update public.events set gallery_visible = false where id = $1",
+      "update public.events set gallery_enabled = false where id = $1",
       [f.eventId]
     );
     const photoId = randomUUID();

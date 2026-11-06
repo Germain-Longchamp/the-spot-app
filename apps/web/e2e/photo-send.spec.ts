@@ -16,6 +16,7 @@ async function openPreview(
   page: Page,
   backend: Parameters<typeof mockPhotoBackend>[1] = {},
   event: Partial<typeof TEST_EVENT> = {
+    gallery_enabled: true,
     gallery_visible: true,
   }
 ) {
@@ -105,7 +106,7 @@ test.describe("prévisualisation", () => {
   });
 
   test("sans galerie, l'option n'est pas proposée", async ({ page }) => {
-    const calls = await openPreview(page, {}, { gallery_visible: false });
+    const calls = await openPreview(page, {}, { gallery_enabled: false });
 
     await expect(
       page.getByRole("checkbox", { name: "Ajouter à la galerie" })

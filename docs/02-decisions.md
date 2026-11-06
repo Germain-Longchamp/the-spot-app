@@ -23,6 +23,7 @@
 | Ordre de construction | Pipeline d'impression avant l'interface |
 | Direction visuelle | Sombre, tactile, minimale, aux couleurs de la charte d'Alison Medici : Pêche pour les actions, Framboise pour la marque, police Inter (2026-11-06) |
 | Nom affiché | « The Spot Memories » (2026-11-06) |
+| Galerie : deux réglages | `gallery_enabled` : l'événement a une galerie, l'invité peut publier ; `gallery_visible` : la galerie est ouverte et consultable. Une photo publiée galerie fermée apparaît à l'ouverture (SCRUM-28, à confirmer par Germain) |
 | Jira | Backlog dans le projet SCRUM, version « v1 Salon », type Story |
 
 ## Questions ouvertes
