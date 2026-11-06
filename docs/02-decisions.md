@@ -21,7 +21,8 @@
 | DONE tardif | Accepté après `STUCK` si la tentative est la même et sans réessai ; sinon ignoré et tracé |
 | Mitigation v1 | Une personne est présente à l'ordinateur du salon pendant l'événement |
 | Ordre de construction | Pipeline d'impression avant l'interface |
-| Direction visuelle | Sombre, tactile, minimale (inspirée BeReal), ambre pour les actions principales |
+| Direction visuelle | Sombre, tactile, minimale, aux couleurs de la charte d'Alison Medici : Pêche pour les actions, Framboise pour la marque, police Inter (2026-11-06) |
+| Nom affiché | « The Spot Memories » (2026-11-06) |
 | Jira | Backlog dans le projet SCRUM, version « v1 Salon », type Story |
 
 ## Questions ouvertes

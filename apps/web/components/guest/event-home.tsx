@@ -27,6 +27,7 @@ export function EventHome({
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-4">
       <div className="flex flex-col gap-2">
         <h1 className="break-words text-2xl font-semibold">{event.name}</h1>
+        <span aria-hidden="true" className="h-1 w-12 rounded-full bg-brand" />
         <p className="text-muted">
           Prenez une photo ou choisissez-en une pour l&apos;imprimer.
         </p>

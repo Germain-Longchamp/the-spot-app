@@ -4,6 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { colors } from "@/lib/ui/tokens";
+
+const palette: { name: string; value: string; className: string }[] = [
+  { name: "Fond", value: colors.background, className: "bg-background" },
+  { name: "Surface", value: colors.surface, className: "bg-surface" },
+  { name: "Texte (crème)", value: colors.foreground, className: "bg-foreground" },
+  { name: "Texte secondaire", value: colors.muted, className: "bg-muted" },
+  { name: "Pêche : actions", value: colors.accent, className: "bg-accent" },
+  { name: "Framboise : marque", value: colors.brand, className: "bg-brand" },
+  { name: "Succès", value: colors.success, className: "bg-success" },
+  { name: "Erreur", value: colors.danger, className: "bg-danger" },
+];
 
 // Reference page for the base components. Never served in production.
 export default function UiDevPage() {
@@ -12,6 +24,27 @@ export default function UiDevPage() {
   return (
     <main className="mx-auto flex max-w-sm flex-col gap-4 p-4">
       <h1 className="text-2xl font-semibold">Composants de base</h1>
+
+      <Card>
+        <h2 className="mb-3 font-semibold">Palette</h2>
+        <ul className="grid grid-cols-2 gap-3">
+          {palette.map((swatch) => (
+            <li key={swatch.name} className="flex items-center gap-2 text-sm">
+              <span
+                aria-hidden="true"
+                className={`size-6 shrink-0 rounded border border-border ${swatch.className}`}
+              />
+              <span>
+                {swatch.name}
+                <span className="block text-muted">{swatch.value}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 rounded-lg bg-brand p-3 text-on-brand">
+          Bandeau de marque : texte crème sur Framboise.
+        </p>
+      </Card>
 
       <Card>
         <div className="flex flex-col gap-3">

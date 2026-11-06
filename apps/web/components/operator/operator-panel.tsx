@@ -36,7 +36,10 @@ export function OperatorPanel({ snapshot, onAction }: Props) {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">{snapshot.eventName}</h1>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-xl font-semibold">{snapshot.eventName}</h1>
+          <span aria-hidden="true" className="block h-1 w-12 rounded-full bg-brand" />
+        </div>
         <PrinterStatusView state={snapshot.printerOnline ? "online" : "offline"} />
       </header>
 

@@ -77,6 +77,7 @@ test("les contrastes respectent la cible", () => {
     [colors.danger, colors.surface],
     [colors.success, colors.background],
     [colors.onAccent, colors.accent],
+    [colors.onBrand, colors.brand],
   ];
 
   for (const [text, background] of pairs) {
