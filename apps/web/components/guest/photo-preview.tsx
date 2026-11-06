@@ -5,6 +5,7 @@ import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { Logo } from "@/components/ui/logo";
+import { MyPrints } from "@/components/guest/my-prints";
 import { sendPhoto } from "@/lib/guest/send-photo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -150,6 +151,11 @@ export function PhotoPreview({
           setDone(true);
         }}
       />
+
+      {printed && (
+        // The print button above already shows the printer's state.
+        <MyPrints eventId={eventId} photoId={photoId} showPrinterStatus={false} />
+      )}
 
       {done && !printed && (
         <p role="status">
