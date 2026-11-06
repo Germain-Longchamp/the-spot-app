@@ -4,7 +4,6 @@
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
-    font-family: Arial, Helvetica, sans-serif;
+    @apply bg-background font-sans text-foreground;
   }
 }
