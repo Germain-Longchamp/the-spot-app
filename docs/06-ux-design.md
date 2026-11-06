@@ -62,7 +62,12 @@ Contraste : WCAG AA, soit 4,5:1 pour le texte et 3:1 pour les éléments graphiq
 
 ## Logo
 
-Ajustement de la boucle du S (SCRUM-37) : lisible sur fond sombre et en petite taille, variantes pour l'icône, exports SVG et PNG. Le détail de l'ajustement attendu n'est pas précisé : à demander à Germain.
+Logo final livré par Alison Medici (charte v1.0, novembre 2026), intégré en SCRUM-37. Nom affiché : « The Spot Memories ».
+
+- Fichiers : `apps/web/public/brand/` (versions blanches) ; favicon, icône SVG et icône iPhone 180 px dans `apps/web/app/`
+- Composant unique : `components/ui/logo.tsx`. Il applique la charte : version blanche sur fond sombre, proportions du fichier, zone de protection (hauteur du « e » de « The »), et bascule sur la version plus simple sous la taille minimale (200 px complet, 120 px sans « memories », 16 px icône)
+- Emplacements : accueil de l'événement et messages de fin (logo complet), panneau opérateur (sans « memories »), aperçu de la photo (icône). Aucun logo sur l'écran caméra
+- Interdits (charte) : déformer, pivoter, recadrer, recolorer, ajouter un effet, poser sur un fond qui manque de contraste
 
 ## Panneau opérateur
 

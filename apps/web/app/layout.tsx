@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "The Spot",
-  description: "Photobooth pour événements",
+  title: "The Spot Memories",
+  description: "Photobooth pour événements : prenez une photo, elle est imprimée sur place.",
 };
 
 export default function RootLayout({

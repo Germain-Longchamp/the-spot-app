@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PrinterStatusView } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import type { OperatorAction } from "@/lib/operator/actions";
 import {
   operatorStatusLabel,
@@ -36,11 +37,21 @@ export function OperatorPanel({ snapshot, onAction }: Props) {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-xl font-semibold">{snapshot.eventName}</h1>
-          <span aria-hidden="true" className="block h-1 w-12 rounded-full bg-brand" />
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <Logo variant="short" width={160} />
+          <div className="flex min-w-0 flex-col gap-2">
+            <h1 className="break-words text-xl font-semibold">
+              {snapshot.eventName}
+            </h1>
+            <span
+              aria-hidden="true"
+              className="block h-1 w-12 rounded-full bg-brand"
+            />
+          </div>
         </div>
-        <PrinterStatusView state={snapshot.printerOnline ? "online" : "offline"} />
+        <PrinterStatusView
+          state={snapshot.printerOnline ? "online" : "offline"}
+        />
       </header>
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
@@ -134,7 +145,9 @@ function JobRow({
       <div className="min-w-40 flex-1">
         <p className="font-semibold">{operatorStatusLabel(job)}</p>
         <p className="text-sm">{time.format(new Date(job.createdAt))}</p>
-        {job.lastError && <p className="text-sm text-danger">{job.lastError}</p>}
+        {job.lastError && (
+          <p className="text-sm text-danger">{job.lastError}</p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
