@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Panneau opérateur · The Spot",
+  title: "Panneau opérateur · The Spot Memories",
   robots: { index: false, follow: false },
 };
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
+import { Logo } from "@/components/ui/logo";
 import { sendPhoto } from "@/lib/guest/send-photo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -101,6 +102,7 @@ export function PhotoPreview({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col gap-4 p-4">
+      <Logo variant="icon" width={28} className="self-center" />
       {url && (
         // A local blob: there is nothing for an image optimizer to do.
         // eslint-disable-next-line @next/next/no-img-element

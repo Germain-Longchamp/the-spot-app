@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GuestFlow } from "@/components/guest/guest-flow";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import { Logo } from "@/components/ui/logo";
 import { EntryOutcome, enterEvent } from "@/lib/guest/enter-event";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,6 +26,7 @@ function Message({
 }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-4">
+      <Logo width={256} className="self-center" />
       <p className="text-lg">{children}</p>
       {action}
     </main>
