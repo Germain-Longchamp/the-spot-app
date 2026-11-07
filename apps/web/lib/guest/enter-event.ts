@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { reportError, setErrorEvent } from "@/lib/errors/report";
 
 export interface GuestEvent {
   id: string;
@@ -18,6 +19,11 @@ async function ensureSession(supabase: SupabaseClient): Promise<boolean> {
   const { data } = await supabase.auth.getSession();
   if (data.session) return true;
   const { error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    // Seen on 2026-11-04: anonymous sign-ins switched off in Supabase looked
+    // like a network problem to everybody. The code tells them apart.
+    reportError(`Connexion anonyme refusée : ${error.code ?? error.status ?? error.message}`);
+  }
   return !error;
 }
 
@@ -42,6 +48,7 @@ export async function enterEvent(
     if (data?.result === "closed") return { kind: "closed" };
     if (data?.result !== "joined") return { kind: "invalid" };
 
+    setErrorEvent(data.event.id);
     return {
       kind: "joined",
       guestId: data.guest_id,

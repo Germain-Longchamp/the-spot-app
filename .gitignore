@@ -29,3 +29,4 @@ npm-debug.log*
 # Generated QR codes
 apps/web/qr-*.png
 apps/web/qr-*.svg
+apps/print-agent/logs/
