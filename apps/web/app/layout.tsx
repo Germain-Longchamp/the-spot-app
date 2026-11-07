@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ErrorReporter } from "@/components/error-reporter";
 import "./globals.css";
 
 // Downloaded at build time and served by the app: no request to Google when a
@@ -22,7 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={inter.variable}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ErrorReporter />
+        {children}
+      </body>
     </html>
   );
 }

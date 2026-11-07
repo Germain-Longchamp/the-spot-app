@@ -10,6 +10,8 @@ export interface AgentConfig {
   heartbeatIntervalMs: number;
   simulatedDelayMs: number;
   simulatedOutcome: "success" | "failure";
+  /** Folder of the local log file, kept on the salon computer. */
+  logDir: string;
 }
 
 type Env = Record<string, string | undefined>;
@@ -34,5 +36,6 @@ export function loadConfig(env: Env): AgentConfig {
     simulatedDelayMs: Number(env.SIMULATED_PRINTER_DELAY_MS) || 3000,
     simulatedOutcome:
       env.SIMULATED_PRINTER_OUTCOME === "failure" ? "failure" : "success",
+    logDir: env.LOG_DIR || "logs",
   };
 }

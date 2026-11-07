@@ -26,6 +26,7 @@
 | Galerie : deux réglages | `gallery_enabled` : l'événement a une galerie, l'invité peut publier ; `gallery_visible` : la galerie est ouverte et consultable. Une photo publiée galerie fermée apparaît à l'ouverture (SCRUM-28, à confirmer par Germain) |
 | Suppression d'une photo (équipe) | Depuis le panneau opérateur, après confirmation : la photo quitte la galerie de tous, ses fichiers sont effacés, l'enregistrement reste (historique des impressions) et l'action est tracée. Refusée tant qu'une impression de la photo est en attente ou à vérifier (SCRUM-30, à confirmer par Germain) |
 | Réglages pendant le salon | Depuis le panneau opérateur : galerie (activée, ouverte), limite d'impressions (vide = sans limite, vaut pour les prochaines demandes seulement), fermeture de l'événement avec confirmation, réversible tant que rien n'est purgé. Chaque changement est tracé (SCRUM-32, à confirmer par Germain) |
+| Journal des erreurs | Sans service tiers : table `app_errors` dans Supabase (téléphones via `log_app_error`, limité à 20/min par téléphone et 300/min au total ; agent avec la clé serveur), lue avec `apps/web/scripts/recent-errors.mjs` ou le tableau de bord Supabase. L'agent écrit aussi un journal JSON local avec rotation (5 Mo × 5) et garde ses erreurs hors réseau. Liens secrets et identifiants masqués (SCRUM-41, à confirmer par Germain : service tiers et durée de conservation) |
 | Jira | Backlog dans le projet SCRUM, version « v1 Salon », type Story |
 
 ## Questions ouvertes

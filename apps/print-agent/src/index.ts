@@ -2,13 +2,13 @@ import { createClient } from "@supabase/supabase-js";
 import { loadConfig } from "./config";
 import { SimulatedPrinter } from "./printer";
 import { SupabaseJobStore, SupabaseLike } from "./supabase-store";
-import { Logger, runAgent, runHeartbeat, WorkerDeps } from "./worker";
+import { AgentLogger, createLogger, ErrorSink, Logger } from "./logger";
+import { runAgent, runHeartbeat, WorkerDeps } from "./worker";
 
-const log: Logger = {
-  info: (message) =>
-    console.log(`${new Date().toISOString()} [agent] ${message}`),
-  error: (message) =>
-    console.error(`${new Date().toISOString()} [agent] ${message}`),
+// Until the configuration is read, lines go to the console only.
+let log: Logger = {
+  info: (message) => console.log(JSON.stringify({ level: "info", message })),
+  error: (message) => console.error(JSON.stringify({ level: "error", message })),
 };
 
 const stop = new AbortController();
@@ -37,6 +37,26 @@ async function main() {
     config.supabaseServiceRoleKey,
     { auth: { persistSession: false } }
   );
+  const agentLog: AgentLogger = createLogger({
+    agentId: config.agentId,
+    eventId: config.eventId,
+    dir: config.logDir,
+  });
+  log = agentLog;
+
+  // Errors also go to the shared table, read with scripts/recent-errors.mjs.
+  const sink: ErrorSink = async (entries) => {
+    const { error } = await client.from("app_errors").insert(
+      entries.map((entry) => ({
+        source: "agent",
+        event_id: entry.eventId,
+        job_id: entry.jobId,
+        screen: entry.agentId,
+        message: entry.message,
+      }))
+    );
+    if (error) throw new Error(error.message);
+  };
 
   log.info(`démarrage de ${config.agentId}`);
 
@@ -52,7 +72,7 @@ async function main() {
         delayMs: config.simulatedDelayMs,
         outcome: config.simulatedOutcome,
       }),
-      log,
+      log: agentLog,
       sleep,
       printOptions: { copies: 1 },
       activeJob: { current: null },
@@ -63,12 +83,21 @@ async function main() {
       maxRetryDelayMs: 30_000,
   };
 
+  async function runErrorFlush() {
+    while (!stop.signal.aborted) {
+      await agentLog.flush(sink);
+      await sleep(config.heartbeatIntervalMs);
+    }
+    await agentLog.flush(sink);
+  }
+
   await Promise.all([
     runAgent(deps, config.pollIntervalMs),
     runHeartbeat(deps, config.heartbeatIntervalMs),
+    runErrorFlush(),
   ]);
 
-  log.info("arrêté");
+  log.info("arrêté", {});
 }
 
 main().catch((error: Error) => {
