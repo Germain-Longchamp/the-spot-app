@@ -22,6 +22,7 @@ export async function loadMyPhotos(
       .from("photos")
       .select("id, storage_path")
       .eq("event_id", eventId)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (error) return null;
     if (!rows.length) return [];

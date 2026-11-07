@@ -10,7 +10,7 @@ const job = (
   id: string,
   status: PanelJob["status"],
   minute: number,
-  extra: Partial<PanelJob> = {}
+  extra: Partial<PanelJob> = {},
 ): PanelJob => ({
   id,
   status,
@@ -38,11 +38,26 @@ function Panel() {
     paused: params.has("paused"),
     printerOnline: !params.has("offline"),
     jobs: params.has("empty") ? [] : jobs,
+    gallery: params.has("empty")
+      ? []
+      : [
+          { id: "photo-a", thumbUrl: null },
+          { id: "photo-b", thumbUrl: null },
+        ],
   });
 
   async function onAction(action: OperatorAction) {
     if (action.type === "pause" || action.type === "resume") {
       setSnapshot({ ...snapshot, paused: action.type === "pause" });
+    }
+    if (action.type === "delete_photo") {
+      setSnapshot({
+        ...snapshot,
+        gallery: snapshot.gallery.filter(
+          (photo) => photo.id !== action.photoId,
+        ),
+      });
+      return `Action de test : delete_photo ${action.photoId}`;
     }
     return `Action de test : ${action.type}`;
   }
