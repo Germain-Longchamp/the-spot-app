@@ -3,7 +3,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type OperatorAction =
   | { type: "start" | "retry" | "cancel"; jobId: string }
   | { type: "pause" | "resume" }
-  | { type: "delete_photo"; photoId: string };
+  | { type: "delete_photo"; photoId: string }
+  | { type: "gallery"; enabled: boolean; visible: boolean }
+  | { type: "print_limit"; limit: number | null }
+  | { type: "close" | "reopen" };
 
 const messages: Record<string, string> = {
   started: "Impression lancée.",
@@ -14,6 +17,7 @@ const messages: Record<string, string> = {
   not_pending: "Cette demande a déjà été traitée.",
   refused: "Cette action n'est plus possible : la demande a changé d'état.",
   not_found: "Cette demande est introuvable.",
+  invalid: "Cette valeur n'est pas valable.",
 };
 
 const deletion: Record<string, string> = {
@@ -34,6 +38,10 @@ const applied: Record<OperatorAction["type"], string> = {
   pause: "Les impressions sont en pause.",
   resume: "Les impressions ont repris.",
   delete_photo: deletion.applied,
+  gallery: "Les réglages de la galerie sont enregistrés.",
+  print_limit: "La limite d'impressions est enregistrée.",
+  close: "L'événement est fermé : plus de nouvelles photos ni d'impressions.",
+  reopen: "L'événement est rouvert.",
 };
 
 const failure = "L'action n'a pas abouti. Réessayez dans un instant.";
@@ -63,6 +71,26 @@ function call(
       return {
         fn: "set_printing_paused",
         args: { p_event_id: eventId, p_paused: action.type === "pause" },
+      };
+    case "gallery":
+      return {
+        fn: "set_gallery",
+        args: {
+          p_event_id: eventId,
+          p_enabled: action.enabled,
+          p_visible: action.visible,
+        },
+      };
+    case "print_limit":
+      return {
+        fn: "set_print_limit",
+        args: { p_event_id: eventId, p_limit: action.limit },
+      };
+    case "close":
+    case "reopen":
+      return {
+        fn: "set_event_open",
+        args: { p_event_id: eventId, p_open: action.type === "reopen" },
       };
   }
 }

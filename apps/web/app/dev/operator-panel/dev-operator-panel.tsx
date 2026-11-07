@@ -36,6 +36,9 @@ function Panel() {
     eventName: "Salon de démonstration",
     printLimit: params.has("limit") ? Number(params.get("limit")) : null,
     paused: params.has("paused"),
+    eventOpen: !params.has("closed"),
+    galleryEnabled: true,
+    galleryVisible: params.has("gallery"),
     printerOnline: !params.has("offline"),
     jobs: params.has("empty") ? [] : jobs,
     gallery: params.has("empty")
@@ -49,6 +52,20 @@ function Panel() {
   async function onAction(action: OperatorAction) {
     if (action.type === "pause" || action.type === "resume") {
       setSnapshot({ ...snapshot, paused: action.type === "pause" });
+    }
+    if (action.type === "gallery") {
+      setSnapshot({
+        ...snapshot,
+        galleryEnabled: action.enabled,
+        galleryVisible: action.visible,
+      });
+    }
+    if (action.type === "print_limit") {
+      setSnapshot({ ...snapshot, printLimit: action.limit });
+      return `Action de test : print_limit ${action.limit}`;
+    }
+    if (action.type === "close" || action.type === "reopen") {
+      setSnapshot({ ...snapshot, eventOpen: action.type === "reopen" });
     }
     if (action.type === "delete_photo") {
       setSnapshot({
