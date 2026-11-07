@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import type { OperatorAction } from "@/lib/operator/actions";
 import {
+  GalleryItem,
   operatorStatusLabel,
   PanelJob,
   panelCounts,
@@ -97,6 +98,12 @@ export function OperatorPanel({ snapshot, onAction }: Props) {
           ))}
         </ul>
       )}
+
+      <GallerySection
+        photos={snapshot.gallery}
+        disabled={busy}
+        onAction={act}
+      />
     </main>
   );
 }
@@ -178,5 +185,89 @@ function JobRow({
         )}
       </div>
     </li>
+  );
+}
+
+function GallerySection({
+  photos,
+  disabled,
+  onAction,
+}: {
+  photos: GalleryItem[];
+  disabled: boolean;
+  onAction: (action: OperatorAction) => void;
+}) {
+  // One photo at a time, and nothing is deleted before an explicit yes.
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  return (
+    <section aria-labelledby="gallery-title" className="flex flex-col gap-3">
+      <h2 id="gallery-title" className="text-lg font-semibold">
+        Galerie
+      </h2>
+      {photos.length === 0 ? (
+        <p>Aucune photo publiée pour le moment.</p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {photos.map((photo) => (
+            <li
+              key={photo.id}
+              data-testid="gallery-photo"
+              className="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2"
+            >
+              {photo.thumbUrl ? (
+                // Signed URLs expire within minutes: there is nothing to optimize.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photo.thumbUrl}
+                  alt="Photo publiée"
+                  className="aspect-square w-full rounded object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square items-center justify-center rounded border border-border text-center text-xs">
+                  Photo indisponible
+                </div>
+              )}
+
+              {confirming === photo.id ? (
+                <div
+                  role="alertdialog"
+                  aria-label="Confirmer la suppression"
+                  className="flex flex-col gap-2"
+                >
+                  <p className="text-sm">
+                    Supprimer définitivement cette photo ? Elle disparaîtra pour
+                    tous les invités.
+                  </p>
+                  <Button
+                    disabled={disabled}
+                    onClick={() => {
+                      setConfirming(null);
+                      onAction({ type: "delete_photo", photoId: photo.id });
+                    }}
+                  >
+                    Supprimer définitivement
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setConfirming(null)}
+                  >
+                    Garder la photo
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="secondary"
+                  disabled={disabled}
+                  onClick={() => setConfirming(photo.id)}
+                >
+                  Supprimer
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

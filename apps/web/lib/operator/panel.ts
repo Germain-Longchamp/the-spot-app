@@ -10,16 +10,24 @@ export interface PanelJob {
   photoUrl: string | null;
 }
 
+export interface GalleryItem {
+  id: string;
+  thumbUrl: string | null;
+}
+
 export interface PanelSnapshot {
   eventName: string;
   printLimit: number | null;
   paused: boolean;
   printerOnline: boolean;
   jobs: PanelJob[];
+  /** Published photos, newest first, for the team to remove if needed. */
+  gallery: GalleryItem[];
 }
 
 const MAX_JOBS = 500;
 const MAX_THUMBNAILS = 50;
+const MAX_GALLERY = 60;
 const THUMBNAIL_SECONDS = 300;
 const PHOTOS_BUCKET = "photos";
 
@@ -85,9 +93,9 @@ interface JobRow {
 /** Reads everything the panel shows. Throws if the data cannot be read. */
 export async function loadSnapshot(
   client: SupabaseClient,
-  eventId: string
+  eventId: string,
 ): Promise<PanelSnapshot> {
-  const [event, jobs, printer] = await Promise.all([
+  const [event, jobs, printer, gallery] = await Promise.all([
     client
       .from("events")
       .select("name, print_limit, printing_paused")
@@ -96,17 +104,26 @@ export async function loadSnapshot(
     client
       .from("print_jobs")
       .select(
-        "id, status, authorized_at, created_at, last_error, photos(storage_path)"
+        "id, status, authorized_at, created_at, last_error, photos(storage_path)",
       )
       .eq("event_id", eventId)
       .order("created_at", { ascending: false })
       .limit(MAX_JOBS),
     client.rpc("get_printer_status", { p_event_id: eventId }),
+    client
+      .from("photos")
+      .select("id, storage_path, thumb_path")
+      .eq("event_id", eventId)
+      .eq("is_published", true)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(MAX_GALLERY),
   ]);
 
   if (event.error) throw new Error(event.error.message);
   if (jobs.error) throw new Error(jobs.error.message);
   if (printer.error) throw new Error(printer.error.message);
+  if (gallery.error) throw new Error(gallery.error.message);
 
   const rows = (jobs.data ?? []) as unknown as JobRow[];
   const sorted = sortJobs(
@@ -117,7 +134,7 @@ export async function loadSnapshot(
       createdAt: row.created_at,
       lastError: row.last_error,
       photoUrl: null,
-    }))
+    })),
   );
 
   return {
@@ -126,14 +143,35 @@ export async function loadSnapshot(
     paused: event.data.printing_paused,
     printerOnline: printer.data === true,
     jobs: await withThumbnails(client, sorted, rows),
+    gallery: await galleryItems(client, gallery.data ?? []),
   };
+}
+
+/** A missing thumbnail must never hide a photo the team may want to remove. */
+async function galleryItems(
+  client: SupabaseClient,
+  rows: { id: string; storage_path: string; thumb_path: string | null }[],
+): Promise<GalleryItem[]> {
+  if (rows.length === 0) return [];
+  const pathOf = (row: (typeof rows)[number]) =>
+    row.thumb_path ?? row.storage_path;
+  const { data } = await client.storage
+    .from(PHOTOS_BUCKET)
+    .createSignedUrls(rows.map(pathOf), THUMBNAIL_SECONDS);
+  const urlOf = new Map(
+    (data ?? []).map((item) => [item.path, item.signedUrl]),
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    thumbUrl: urlOf.get(pathOf(row)) || null,
+  }));
 }
 
 /** A missing thumbnail must never hide a job, so failures are ignored. */
 async function withThumbnails(
   client: SupabaseClient,
   jobs: PanelJob[],
-  rows: JobRow[]
+  rows: JobRow[],
 ): Promise<PanelJob[]> {
   const pathOf = new Map(rows.map((r) => [r.id, r.photos?.storage_path]));
   const paths = jobs
