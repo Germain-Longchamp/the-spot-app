@@ -9,7 +9,7 @@ test.describe("panneau opérateur", () => {
   test("les photos publiées sont listées avec un bouton « Supprimer »", async ({ page }) => {
     await page.goto(PANEL);
 
-    await expect(page.getByRole("heading", { name: "Galerie" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Galerie", exact: true })).toBeVisible();
     await expect(photos(page)).toHaveCount(2);
     await expect(photos(page).first().getByRole("button", { name: "Supprimer" })).toBeVisible();
   });

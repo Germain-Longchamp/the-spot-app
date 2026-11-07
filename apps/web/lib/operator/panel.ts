@@ -19,6 +19,9 @@ export interface PanelSnapshot {
   eventName: string;
   printLimit: number | null;
   paused: boolean;
+  eventOpen: boolean;
+  galleryEnabled: boolean;
+  galleryVisible: boolean;
   printerOnline: boolean;
   jobs: PanelJob[];
   /** Published photos, newest first, for the team to remove if needed. */
@@ -98,7 +101,9 @@ export async function loadSnapshot(
   const [event, jobs, printer, gallery] = await Promise.all([
     client
       .from("events")
-      .select("name, print_limit, printing_paused")
+      .select(
+        "name, print_limit, printing_paused, status, gallery_enabled, gallery_visible",
+      )
       .eq("id", eventId)
       .single(),
     client
@@ -141,6 +146,9 @@ export async function loadSnapshot(
     eventName: event.data.name,
     printLimit: event.data.print_limit,
     paused: event.data.printing_paused,
+    eventOpen: event.data.status === "open",
+    galleryEnabled: event.data.gallery_enabled,
+    galleryVisible: event.data.gallery_visible,
     printerOnline: printer.data === true,
     jobs: await withThumbnails(client, sorted, rows),
     gallery: await galleryItems(client, gallery.data ?? []),
