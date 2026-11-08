@@ -2,9 +2,14 @@
 
 import { useRef, useState } from "react";
 import { Camera } from "@/components/guest/camera";
+import {
+  AlbumEntry,
+  AlbumScreen,
+  PhotoDetail,
+  PrintBanner,
+  useAlbum,
+} from "@/components/guest/album";
 import { EventHome } from "@/components/guest/event-home";
-import { MyPhotos } from "@/components/guest/my-photos";
-import { MyPrints } from "@/components/guest/my-prints";
 import { PhotoPreview } from "@/components/guest/photo-preview";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 import { importPhoto } from "@/lib/guest/import-photo";
@@ -12,7 +17,9 @@ import { importPhoto } from "@/lib/guest/import-photo";
 type Screen =
   | { name: "home" }
   | { name: "camera" }
-  | { name: "preview"; photo: Blob };
+  | { name: "preview"; photo: Blob }
+  | { name: "album" }
+  | { name: "photo"; photoId: string };
 
 interface Props {
   event: GuestEvent;
@@ -28,6 +35,14 @@ export function GuestFlow({ event, guestId, token }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const home = () => setScreen({ name: "home" });
+  const openAlbum = () => setScreen({ name: "album" });
+  const openPhoto = (photoId: string) => setScreen({ name: "photo", photoId });
+
+  // Read only on the screens that show it: never while taking a photo.
+  const albumShown = screen.name === "home" || screen.name === "album" || screen.name === "photo";
+  const album = useAlbum(event.id, guestId, albumShown);
+  const items = album.items ?? [];
+  const opened = screen.name === "photo" ? items.find((item) => item.photoId === screen.photoId) : undefined;
 
   function chooseFile() {
     setImportError(null);
@@ -78,6 +93,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
           galleryHref={`/e/${token}/galerie`}
           onDone={home}
           onAnother={() => setScreen({ name: "camera" })}
+          onOpenAlbum={openAlbum}
         />
       )}
 
@@ -89,11 +105,23 @@ export function GuestFlow({ event, guestId, token }: Props) {
           importError={importError}
           onTakePhoto={() => setScreen({ name: "camera" })}
           onImportPhoto={chooseFile}
-        >
-          {/* Remounted on each return home, so new items show up at once. */}
-          <MyPrints eventId={event.id} />
-          <MyPhotos eventId={event.id} />
-        </EventHome>
+          banner={<PrintBanner items={items} onOpen={openPhoto} />}
+          album={<AlbumEntry items={items} onOpen={openAlbum} />}
+        />
+      )}
+
+      {(screen.name === "album" || (screen.name === "photo" && !opened)) && (
+        <AlbumScreen items={items} offline={album.offline} onBack={home} onOpen={openPhoto} />
+      )}
+
+      {screen.name === "photo" && opened && (
+        <PhotoDetail
+          key={opened.photoId}
+          item={opened}
+          eventId={event.id}
+          onBack={openAlbum}
+          onPrinted={album.refresh}
+        />
       )}
     </>
   );

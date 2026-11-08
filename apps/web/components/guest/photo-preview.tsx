@@ -7,20 +7,14 @@ import { Screen } from "@/components/guest/screen";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { CameraIcon, GalleryIcon, PrinterIcon } from "@/components/ui/icons";
+import { CameraIcon, GalleryIcon, ImageIcon, PrinterIcon } from "@/components/ui/icons";
 import { Switch } from "@/components/ui/switch";
 import { sendPhoto } from "@/lib/guest/send-photo";
+import { unavailableMessages } from "@/lib/print/availability";
 import { printRequestMessages } from "@/lib/print/request-print";
 import { usePrintRequest } from "@/lib/print/use-print-request";
 import { createClient } from "@/lib/supabase/client";
 
-const unavailableMessages: Record<string, string> = {
-  paused:
-    "Les impressions sont en pause pour le moment. Merci de patienter quelques instants.",
-  limit_reached:
-    "Le nombre maximum d'impressions de cet événement est atteint.",
-  closed: "Cet événement est terminé : les impressions ne sont plus possibles.",
-};
 
 const failure =
   "Votre photo n'a pas pu être envoyée. Vérifiez votre connexion, puis réessayez.";
@@ -40,6 +34,8 @@ interface Props {
   onDone: () => void;
   /** Straight to the camera, for the next photo. */
   onAnother?: () => void;
+  /** The guest's photos and the state of their prints. */
+  onOpenAlbum?: () => void;
 }
 
 /**
@@ -55,6 +51,7 @@ export function PhotoPreview({
   galleryHref,
   onDone,
   onAnother,
+  onOpenAlbum,
 }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("review");
@@ -215,15 +212,27 @@ export function PhotoPreview({
 
         {url && <Polaroid src={url} small />}
 
-        {inGallery && galleryVisible && galleryHref && (
-          <Link
-            href={galleryHref}
-            className="inline-flex min-h-11 items-center gap-2 self-center font-semibold text-accent underline"
-          >
-            <GalleryIcon size={20} />
-            Voir la galerie
-          </Link>
-        )}
+        <div className="flex flex-wrap justify-center gap-x-6">
+          {onOpenAlbum && (
+            <button
+              type="button"
+              onClick={onOpenAlbum}
+              className="inline-flex min-h-11 items-center gap-2 font-semibold text-accent underline"
+            >
+              <ImageIcon size={20} />
+              Voir mes photos
+            </button>
+          )}
+          {inGallery && galleryVisible && galleryHref && (
+            <Link
+              href={galleryHref}
+              className="inline-flex min-h-11 items-center gap-2 font-semibold text-accent underline"
+            >
+              <GalleryIcon size={20} />
+              Voir la galerie
+            </Link>
+          )}
+        </div>
       </Screen>
     );
   }

@@ -17,7 +17,11 @@ interface Props {
   onImportPhoto?: () => void;
   importing?: boolean;
   importError?: string | null;
-  /** Shown below the main actions, so they stay first on screen. */
+  /** A print the guest should hear about now, above everything. */
+  banner?: ReactNode;
+  /** The way into the guest's photos, right below the main actions. */
+  album?: ReactNode;
+  /** Shown at the end, so the main actions stay first on screen. */
   children?: ReactNode;
 }
 
@@ -70,10 +74,13 @@ export function EventHome({
   onImportPhoto,
   importing = false,
   importError = null,
+  banner,
+  album,
   children,
 }: Props) {
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-md animate-screen-in flex-col gap-6 px-4 pb-10 pt-6">
+      {banner}
       <div className="flex flex-col items-center gap-3 text-center">
         <Logo width={232} />
         <h1 className="break-words text-2xl font-semibold">{event.name}</h1>
@@ -99,6 +106,8 @@ export function EventHome({
       </div>
 
       {importError && <ErrorMessage>{importError}</ErrorMessage>}
+
+      {album}
 
       <ol aria-label="Comment ça marche" className="grid grid-cols-3 gap-2 text-center text-sm text-muted">
         {howItWorks.map((step, index) => (
