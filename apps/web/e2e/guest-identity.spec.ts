@@ -24,9 +24,16 @@ async function mockMyPhotos(
     if (options.fail) return route.abort("internetdisconnected");
     return json(
       route,
-      photoIds.map((id) => ({ id, storage_path: pathOf(id) }))
+      photoIds.map((id) => ({
+        id,
+        storage_path: pathOf(id),
+        thumb_path: null,
+        is_published: false,
+        created_at: "2026-11-06T13:30:00.000Z",
+      }))
     );
   });
+  await page.route("**/rest/v1/print_jobs?**", (route) => json(route, []));
   await page.route("**/storage/v1/object/sign/photos", (route) => {
     const { paths } = route.request().postDataJSON() as { paths: string[] };
     return json(
@@ -66,12 +73,13 @@ test("après un rechargement, même identité et mêmes photos", async ({
   context,
 }) => {
   const { page, calls } = await openEvent(context, ["p-1", "p-2"]);
-  await expect(page.getByRole("img", { name: "Une de vos photos" })).toHaveCount(2);
+  const myPhotos = page.getByRole("button", { name: "Mes photos (2)" });
+  await expect(myPhotos).toBeVisible();
   const signups = calls.signups;
 
   await page.reload();
 
-  await expect(page.getByRole("heading", { name: "Vos photos" })).toBeVisible();
+  await myPhotos.click();
   await expect(page.getByRole("img", { name: "Une de vos photos" })).toHaveCount(2);
   expect(calls.signups).toBe(signups);
 });
@@ -81,9 +89,10 @@ test("seules les photos de cet événement sont demandées", async ({ page }) =>
   const queries = await mockMyPhotos(page, ["p-1"]);
 
   await page.goto(URL);
-  await expect(page.getByRole("img", { name: "Une de vos photos" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mes photos (1)" })).toBeVisible();
 
   expect(queries[0]).toContain(`event_id=eq.${TEST_EVENT.id}`);
+  expect(queries[0]).toContain(`guest_id=eq.${GUEST_ID}`);
 });
 
 /**
@@ -136,10 +145,10 @@ test("données du navigateur vidées : nouvelle identité, sans erreur", async (
   expect(calls.signups).toBeGreaterThan(before);
 });
 
-test("sans photo envoyée, la section n'apparaît pas", async ({ context }) => {
+test("sans photo envoyée, pas d'accès à « Mes photos »", async ({ context }) => {
   const { page } = await openEvent(context, []);
 
-  await expect(page.getByRole("heading", { name: "Vos photos" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Mes photos/ })).toHaveCount(0);
 });
 
 test("si les photos ne se chargent pas, l'accueil reste utilisable", async ({
@@ -153,6 +162,6 @@ test("si les photos ne se chargent pas, l'accueil reste utilisable", async ({
   await expect(
     page.getByRole("button", { name: "Prendre une photo" })
   ).toBeEnabled();
-  await expect(page.getByRole("heading", { name: "Vos photos" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Mes photos/ })).toHaveCount(0);
   await expect(page.locator("main [role=alert]")).toHaveCount(0);
 });

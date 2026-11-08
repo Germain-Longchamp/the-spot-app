@@ -178,6 +178,15 @@ test("« Prendre une autre photo » ouvre directement la caméra", async ({ page
   ).toBeVisible();
 });
 
+test("la confirmation mène à « Mes photos »", async ({ page }) => {
+  await openReview(page);
+  await page.getByRole("button", { name: "Imprimer", exact: true }).click();
+
+  await page.getByRole("button", { name: "Voir mes photos" }).click();
+
+  await expect(page.getByRole("heading", { name: "Mes photos" })).toBeVisible();
+});
+
 test("valider sans imprimer, puis imprimer depuis la confirmation", async ({ page }) => {
   const backend = await openReview(page);
 
