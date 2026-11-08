@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
+import { noStoreFetch } from "@/lib/supabase/no-store";
 
 /**
  * Bypasses RLS. Server code only: "server-only" breaks the build if this file
@@ -16,5 +17,7 @@ export function createAdminClient() {
   }
   return createClient(env.NEXT_PUBLIC_SUPABASE_URL, key, {
     auth: { persistSession: false },
+    // Fresh data on every request: see no-store.ts.
+    global: { fetch: noStoreFetch },
   });
 }
