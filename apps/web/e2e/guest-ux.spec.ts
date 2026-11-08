@@ -95,7 +95,7 @@ test("aperçu : actions fixées en bas, « Reprendre » en haut, même après d�
   const validate = page.getByRole("button", { name: "Valider sans imprimer" });
   const back = page.getByRole("button", { name: "Reprendre" });
 
-  await page.mouse.wheel(0, 2000);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await inView(page, print);
   await inView(page, validate);
   await inView(page, back);
@@ -253,8 +253,11 @@ test("petit écran 320 x 568 : la barre du bas ne masque ni la photo ni les reto
   await inView(page, page.getByRole("button", { name: "Reprendre" }));
   await inView(page, page.getByRole("button", { name: "Imprimer", exact: true }));
 
-  // Scrolled to the end, the photo's frame ends above the action bar.
-  await page.mouse.wheel(0, 3000);
+  // Scrolled to the end, the content ends above the action bar.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1))
+    .toBe(true);
   const bar = await page.getByRole("button", { name: "Imprimer", exact: true }).boundingBox();
   const lastContent = await page.getByText("Ajouter à la galerie de l'événement").boundingBox();
   expect(lastContent!.y + lastContent!.height).toBeLessThanOrEqual(bar!.y);
