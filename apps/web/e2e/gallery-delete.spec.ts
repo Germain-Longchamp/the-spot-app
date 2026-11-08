@@ -3,11 +3,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { runOperatorAction } from "../lib/operator/actions";
 
 const PANEL = "/dev/operator-panel";
-const photos = (page: import("@playwright/test").Page) => page.getByTestId("gallery-photo");
+type Page = import("@playwright/test").Page;
+const photos = (page: Page) => page.getByTestId("gallery-photo");
+
+async function openGallery(page: Page, query = "") {
+  await page.goto(`${PANEL}${query}`);
+  await page.getByRole("tab", { name: /Galerie/ }).click();
+}
 
 test.describe("panneau opérateur", () => {
   test("les photos publiées sont listées avec un bouton « Supprimer »", async ({ page }) => {
-    await page.goto(PANEL);
+    await openGallery(page);
 
     await expect(page.getByRole("heading", { name: "Galerie", exact: true })).toBeVisible();
     await expect(photos(page)).toHaveCount(2);
@@ -19,7 +25,7 @@ test.describe("panneau opérateur", () => {
    *   When je supprime une photo après confirmation
    */
   test("rien n'est supprimé sans confirmation explicite", async ({ page }) => {
-    await page.goto(PANEL);
+    await openGallery(page);
 
     await photos(page).first().getByRole("button", { name: "Supprimer" }).click();
 
@@ -39,7 +45,7 @@ test.describe("panneau opérateur", () => {
    *   Then la photo reste en place
    */
   test("annuler la confirmation garde la photo", async ({ page }) => {
-    await page.goto(PANEL);
+    await openGallery(page);
 
     await photos(page).first().getByRole("button", { name: "Supprimer" }).click();
     await page.getByRole("button", { name: "Garder la photo" }).click();
@@ -49,7 +55,7 @@ test.describe("panneau opérateur", () => {
   });
 
   test("galerie vide : message simple", async ({ page }) => {
-    await page.goto(`${PANEL}?empty`);
+    await openGallery(page, "?empty");
 
     await expect(page.getByText("Aucune photo publiée pour le moment.")).toBeVisible();
   });

@@ -3,13 +3,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { OperatorAction, runOperatorAction } from "../lib/operator/actions";
 
 const PANEL = "/dev/operator-panel";
-const settings = (page: Page) =>
-  page.getByRole("region", { name: "Réglages de l'événement" });
+const settings = (page: Page) => page.getByRole("region", { name: "Paramètres" });
+
+async function openSettings(page: Page, query = "") {
+  await page.goto(`${PANEL}${query}`);
+  await page.getByRole("tab", { name: "Paramètres" }).click();
+}
 const status = (page: Page) => page.locator("main > p[role=status]");
 
 test.describe("panneau opérateur", () => {
   test("ouvrir puis cacher la galerie", async ({ page }) => {
-    await page.goto(PANEL);
+    await openSettings(page);
     await expect(page.getByTestId("gallery-state")).toContainText("Galerie cachée");
 
     await settings(page).getByRole("button", { name: "Ouvrir la galerie aux invités" }).click();
@@ -20,7 +24,7 @@ test.describe("panneau opérateur", () => {
   });
 
   test("désactiver la galerie retire l'option d'ouverture", async ({ page }) => {
-    await page.goto(`${PANEL}?gallery`);
+    await openSettings(page, "?gallery");
 
     await settings(page).getByRole("button", { name: "Désactiver la galerie" }).click();
 
@@ -31,7 +35,7 @@ test.describe("panneau opérateur", () => {
   });
 
   test("enregistrer une limite, puis la retirer", async ({ page }) => {
-    await page.goto(PANEL);
+    await openSettings(page);
 
     await page.getByLabel("Nombre maximal d'impressions").fill("40");
     await page.getByRole("button", { name: "Enregistrer la limite" }).click();
@@ -43,7 +47,7 @@ test.describe("panneau opérateur", () => {
   });
 
   test("une limite invalide est refusée avec une explication", async ({ page }) => {
-    await page.goto(PANEL);
+    await openSettings(page);
 
     await page.getByLabel("Nombre maximal d'impressions").fill("-3");
     await page.getByRole("button", { name: "Enregistrer la limite" }).click();
@@ -53,7 +57,7 @@ test.describe("panneau opérateur", () => {
   });
 
   test("fermer l'événement demande confirmation, puis le panneau le signale", async ({ page }) => {
-    await page.goto(PANEL);
+    await openSettings(page);
 
     await settings(page).getByRole("button", { name: "Fermer l'événement…" }).click();
     const dialog = page.getByRole("alertdialog", { name: "Confirmer la fermeture" });

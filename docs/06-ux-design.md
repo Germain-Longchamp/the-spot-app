@@ -83,6 +83,14 @@ Logo final livré par Alison Medici (charte v1.0, novembre 2026), intégré en S
 
 Écran de l'équipe, lisible d'un coup d'œil : liste des jobs avec photo et statut, bouton pour lancer l'impression suivante, pause globale, réessai ou annulation d'un job, indicateur d'état de l'agent toujours visible, accès aux réglages de l'événement et à l'export. Confirmation avant toute action irréversible.
 
+Organisation depuis SCRUM-48 (décision de Germain du 2026-11-08) :
+
+- **Barre collante** : état de l'imprimante, bandeaux « Impressions en pause » et « Événement fermé », onglets. Elle reste visible quelle que soit la vue et le défilement
+- **Impressions** (vue par défaut) : compteurs, pause, puis les demandes regroupées — à vérifier, en impression, file d'attente numérotée dans l'ordre d'arrivée (« Prochaine à imprimer » en tête), historique replié
+- **Galerie** : photos publiées, suppression après confirmation
+- **Paramètres** : accès à la galerie, nombre maximal d'impressions, fermeture et réouverture de l'événement
+- Un badge sur l'onglet « Impressions » compte les demandes en attente ou à vérifier ; il passe en rouge s'il y a un souci
+
 ## Socle visuel (SCRUM-36)
 
 Toutes les couleurs vivent dans `apps/web/lib/ui/tokens.ts` : changer une valeur s'applique à toute l'application. Les anciennes couleurs provisoires (ambre, sarcelle) y sont listées comme interdites. Les composants de base sont dans `apps/web/components/ui/`, visibles sur `/dev/ui` en local.
