@@ -6,6 +6,9 @@ import { loadSnapshot } from "@/lib/operator/panel";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
+// Belt and braces with noStoreFetch: no database read is ever cached here.
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Panneau opérateur · The Spot Memories",
