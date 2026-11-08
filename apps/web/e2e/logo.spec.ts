@@ -39,15 +39,15 @@ const logo = (page: Page) => page.getByRole("img", { name: NAME });
 
 /**
  * Scenario: Logo sur l'accueil de l'événement
- *   Then le logo complet en version blanche est affiché
+ *   Then le logo complet en version couleur est affiché (thème clair, SCRUM-46)
  *   And il mesure au moins 200 px de large
  *   And ses proportions sont celles du fichier fourni
  */
-test("accueil : logo complet blanc, assez grand, non déformé", async ({ page }) => {
+test("accueil : logo complet couleur, assez grand, non déformé", async ({ page }) => {
   await openHome(page);
 
   await expect(logo(page)).toBeVisible();
-  await expect(logo(page)).toHaveAttribute("src", /logo-complet-blanc\.svg$/);
+  await expect(logo(page)).toHaveAttribute("src", /logo-complet-couleur\.svg$/);
   await expect(logo(page)).toHaveJSProperty("complete", true);
 
   const box = await logo(page).boundingBox();
@@ -61,13 +61,14 @@ test("accueil : logo complet blanc, assez grand, non déformé", async ({ page }
   expect(natural.width / natural.height).toBeCloseTo(CANVAS_RATIO, 1);
 });
 
-test("le fichier affiché est bien la version blanche de la designer", () => {
+test("le fichier affiché est bien la version couleur de la designer", () => {
   const svg = readFileSync(
-    join(__dirname, "../public/brand/logo-complet-blanc.svg"),
+    join(__dirname, "../public/brand/logo-complet-couleur.svg"),
     "utf8"
   );
   const fills = new Set(svg.match(/fill="#[0-9A-Fa-f]{6}"/g));
-  expect([...Array.from(fills)]).toEqual(['fill="#FFFFFF"']);
+  // Charter colours only: Framboise and Pêche.
+  expect([...Array.from(fills)].sort()).toEqual(['fill="#AD354E"', 'fill="#EC9A62"']);
   expect(svg).not.toMatch(/<script|on\w+=|href=/i);
 });
 
@@ -112,7 +113,7 @@ test("panneau opérateur : version courte, au-dessus de sa taille minimale", asy
 }) => {
   await page.goto("/dev/operator-panel");
 
-  await expect(logo(page)).toHaveAttribute("src", /logo-court-blanc\.svg$/);
+  await expect(logo(page)).toHaveAttribute("src", /logo-court-couleur\.svg$/);
   const box = await logo(page).boundingBox();
   expect(box!.width * DRAWING_SHARE).toBeGreaterThanOrEqual(120);
 });
@@ -127,7 +128,7 @@ test("aperçu de la photo : l'icône seule, au-dessus de 16 px", async ({ page }
     .setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
   await expect(page.getByRole("img", { name: "Votre photo" })).toBeVisible();
 
-  await expect(logo(page)).toHaveAttribute("src", /icone-blanc\.svg$/);
+  await expect(logo(page)).toHaveAttribute("src", /icone-couleur\.svg$/);
   const box = await logo(page).boundingBox();
   expect(box!.width).toBeGreaterThanOrEqual(16);
   expect(box!.width / box!.height).toBeCloseTo(1, 1);

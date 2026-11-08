@@ -7,12 +7,12 @@ import { LoadingScreen } from "@/components/ui/loading-screen";
 import { colors } from "@/lib/ui/tokens";
 
 const palette: { name: string; value: string; className: string }[] = [
-  { name: "Fond", value: colors.background, className: "bg-background" },
-  { name: "Surface", value: colors.surface, className: "bg-surface" },
-  { name: "Texte (crème)", value: colors.foreground, className: "bg-foreground" },
+  { name: "Fond (crème)", value: colors.background, className: "bg-background" },
+  { name: "Cartes", value: colors.surface, className: "bg-surface" },
+  { name: "Texte", value: colors.foreground, className: "bg-foreground" },
   { name: "Texte secondaire", value: colors.muted, className: "bg-muted" },
-  { name: "Pêche : actions", value: colors.accent, className: "bg-accent" },
-  { name: "Framboise : marque", value: colors.brand, className: "bg-brand" },
+  { name: "Framboise : actions", value: colors.accent, className: "bg-accent" },
+  { name: "Pêche : décor", value: colors.brand, className: "bg-brand" },
   { name: "Succès", value: colors.success, className: "bg-success" },
   { name: "Erreur", value: colors.danger, className: "bg-danger" },
 ];
@@ -41,8 +41,8 @@ export default function UiDevPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 rounded-lg bg-brand p-3 text-on-brand">
-          Bandeau de marque : texte crème sur Framboise.
+        <p className="mt-3 rounded-lg bg-brand-soft p-3 text-on-brand">
+          Bandeau doux : texte foncé sur Pêche clair.
         </p>
       </Card>
 

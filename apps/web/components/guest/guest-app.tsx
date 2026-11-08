@@ -25,10 +25,12 @@ function Message({
   action?: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-4">
-      <Logo width={256} className="self-center" />
-      <p className="text-lg">{children}</p>
-      {action}
+    <main className="mx-auto flex min-h-[100dvh] max-w-md animate-screen-in flex-col justify-center gap-6 p-4">
+      <Logo width={232} className="self-center" />
+      <div className="flex flex-col gap-4 rounded-3xl bg-surface p-6 shadow-card">
+        <p className="text-lg">{children}</p>
+        {action}
+      </div>
     </main>
   );
 }

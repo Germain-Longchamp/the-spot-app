@@ -1,6 +1,6 @@
 /**
- * The Spot Memories logo, white versions only: the app background is dark
- * (charter by Alison Medici, "Sur quel fond ?").
+ * The Spot Memories logo, colour versions: the app background is light
+ * (charter by Alison Medici, "Sur quel fond ?"; light theme since SCRUM-46).
  *
  * The charter's rules live here so no screen can break them: proportions come
  * from the files, never from CSS; a protection zone surrounds the logo; below
@@ -18,9 +18,9 @@ const CANVAS = { width: 805.5, height: 586.8, margin: 40 };
 const PROTECTION = 56;
 
 const files: Record<Variant, string> = {
-  full: "/brand/logo-complet-blanc.svg",
-  short: "/brand/logo-court-blanc.svg",
-  icon: "/brand/icone-blanc.svg",
+  full: "/brand/logo-complet-couleur.svg",
+  short: "/brand/logo-court-couleur.svg",
+  icon: "/brand/icone-couleur.svg",
 };
 
 /** Charter minimum sizes on screen, measured on the drawing itself. */

@@ -54,16 +54,17 @@ async function openGuestHome(page: Page) {
 test("les couleurs sont celles de la charte, sans variante", () => {
   expect(brand.framboise).toBe("#AD354E");
   expect(brand.peche).toBe("#EC9A62");
-  expect(colors.accent).toBe(brand.peche);
-  expect(colors.brand).toBe(brand.framboise);
+  // Light theme (SCRUM-46): Framboise carries the actions, Pêche decorates.
+  expect(colors.accent).toBe(brand.framboise);
+  expect(colors.brand).toBe(brand.peche);
 });
 
 /**
- * Scenario: Actions principales aux couleurs de la marque
- *   Then les boutons "Prendre une photo" et "Importer une photo" sont en Pêche
- *   And leur texte est foncé et lisible
+ * Scenario: Actions principales aux couleurs de la marque (thème clair, SCRUM-46)
+ *   Then les boutons "Prendre une photo" et "Importer une photo" sont en Framboise
+ *   And leur texte est blanc et lisible
  */
-test("les actions principales de l'accueil sont en Pêche", async ({ page }) => {
+test("les actions principales de l'accueil sont en Framboise, texte blanc", async ({ page }) => {
   await openGuestHome(page);
 
   for (const name of ["Prendre une photo", "Importer une photo"]) {
@@ -113,11 +114,11 @@ const screens = [
 ];
 
 /**
- * Scenario: Framboise jamais en texte sur fond sombre
- *   Then le Framboise n'est associé à aucun texte posé sur le fond sombre
+ * Scenario: Pêche jamais en texte sur fond clair (SCRUM-46)
+ *   Then le Pêche n'est associé à aucun texte : son contraste est trop faible
  */
 for (const screen of screens) {
-  test(`${screen.name} : aucun texte en Framboise`, async ({ page }) => {
+  test(`${screen.name} : aucun texte en Pêche`, async ({ page }) => {
     await screen.open(page);
     await page.waitForLoadState("networkidle");
 

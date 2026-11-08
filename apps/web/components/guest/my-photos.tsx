@@ -35,7 +35,7 @@ export function MyPhotos({ eventId }: { eventId: string }) {
               src={photo.url}
               alt="Une de vos photos"
               loading="lazy"
-              className="aspect-square w-full rounded-lg object-cover"
+              className="aspect-square w-full rounded-xl object-cover shadow-card"
             />
           </li>
         ))}

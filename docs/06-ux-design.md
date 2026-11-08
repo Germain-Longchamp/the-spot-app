@@ -13,23 +13,33 @@ Les deux premières règles sont les plus critiques.
 
 ## Direction visuelle (validée)
 
-Sombre, tactile, minimale, aux couleurs de The Spot Memories. Couleurs de marque issues de la charte logo d'Alison Medici (v1.0, novembre 2026) ; thème sombre conservé (décision de Germain du 2026-11-06, SCRUM-45). Pas de mode clair en v1.
+Claire, chaleureuse, tactile, aux couleurs de The Spot Memories. **Thème clair depuis la décision de Germain du 2026-11-08 (SCRUM-46)**, qui remplace le thème sombre de SCRUM-45 : la charte d'Alison Medici met le logo couleur sur fond clair.
 
 | Usage | Couleur | Règle |
 |---|---|---|
-| Fond | `#0D0D0D` | Quasi noir (hypothèse : la charte ne donne pas de fond) |
-| Surface (cartes) | `#1A1A1A` | |
-| Texte principal | Crème `#F6EEE3` | À faire valider par Alison Medici |
-| Texte secondaire | `#B5AAA0` | |
-| Actions principales | Pêche `#EC9A62` | Texte foncé dessus |
-| Marque (bandeaux, décor) | Framboise `#AD354E` | **Jamais pour du texte sur le fond sombre** (contraste d'environ 3:1) ; texte crème dessus |
-| Contours des contrôles | `#756A62` | Au moins 3:1 sur les deux fonds |
-| Succès, imprimante en ligne | Vert `#4ADE80` | |
-| Erreur, STUCK, imprimante hors ligne | Rouge `#F87171` | Distinct du Framboise, toujours avec un texte |
+| Fond | Crème `#F6EEE3` | Relevé sur la charte (à confirmer par Alison) |
+| Cartes, barres | Blanc `#FFFFFF` | Ombre douce pour les détacher du crème |
+| Texte | `#2B1B20` | 14:1 sur le crème |
+| Texte secondaire | `#6B585C` | 5,7:1 |
+| Actions principales | Framboise `#AD354E` | Texte blanc dessus (6,2:1) |
+| Décor | Pêche `#EC9A62` (et Pêche clair `#FBE6D6`) | **Jamais pour du texte sur fond clair** (2:1) ; texte foncé dessus |
+| Contours des contrôles | `#968079` | 3:1 au moins |
+| Succès, imprimante en ligne | Vert `#1F7A4D` | |
+| Erreur, impression bloquée | Rouge `#B42318` | Toujours avec une icône et une phrase |
 
-Typographie : Inter pour tous les textes, embarquée dans l'application (aucun appel à un serveur de polices). La police du logo n'est pas imitée.
+Typographie : Inter, embarquée dans l'application. Contraste WCAG AA vérifié par `e2e/brand-colors.spec.ts`.
 
-Contraste : WCAG AA, soit 4,5:1 pour le texte et 3:1 pour les éléments graphiques utiles. Vérifié par `e2e/brand-colors.spec.ts`. Une information ne passe jamais par la couleur seule.
+## Parcours invité (SCRUM-46)
+
+Un écran par étape, une action principale par écran :
+
+1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis lien vers la galerie, « Vos impressions » et « Vos photos ».
+2. **Caméra** : plein écran, déclencheur rond, fermeture (croix) et bascule de caméra en icônes, éclair blanc à la prise.
+3. **Aperçu** (« Votre photo ») : photo encadrée comme un tirage, état de l'imprimante, interrupteur « Ajouter à la galerie », barre d'actions fixée en bas (« Imprimer », « Valider sans imprimer »), « Reprendre » toujours visible en haut.
+4. **Envoi** : anneau de progression, message rassurant ; jamais de retour possible pendant l'envoi.
+5. **Confirmation** : coche animée, message, état de l'imprimante et suivi en étapes (envoyée, validation, impression, prête), puis « Prendre une autre photo » (ouvre la caméra) et « Retour à l'accueil » fixés en bas.
+
+Composants : `components/guest/screen.tsx` (en-tête, contenu, barre du bas), `components/guest/print-steps.tsx`, `components/ui/switch.tsx`, `components/ui/icons.tsx`. Animations courtes (entrée d'écran, coche, éclair, pulsation) ; toutes coupées si le téléphone demande de réduire les animations.
 
 ## Principes pour les écrans
 

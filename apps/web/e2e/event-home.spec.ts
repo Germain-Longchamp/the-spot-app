@@ -36,8 +36,9 @@ test("les deux actions sont visibles sans défiler, à la même taille", async (
   await expect(load).toBeInViewport({ ratio: 1 });
 
   const [a, b] = [await take.boundingBox(), await load.boundingBox()];
-  expect(a?.width).toBe(b?.width);
-  expect(a?.height).toBe(b?.height);
+  // Same size to the pixel; browsers round sub-pixels differently.
+  expect(a!.width).toBeCloseTo(b!.width, 0);
+  expect(a!.height).toBeCloseTo(b!.height, 0);
 });
 
 /**

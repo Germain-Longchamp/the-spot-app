@@ -31,9 +31,12 @@ export function PrinterStatusView({ state }: { state: State }) {
       data-testid="printer-status"
       data-state={state}
       aria-live="polite"
-      className="flex items-center gap-2 text-sm"
+      className="inline-flex items-center gap-2 self-start rounded-full bg-surface px-3 py-1.5 text-sm shadow-card"
     >
-      <span aria-hidden="true" className={`size-3 rounded-full ${dot}`} />
+      <span
+        aria-hidden="true"
+        className={`size-2.5 shrink-0 rounded-full ${dot} ${state === "checking" ? "animate-soft-pulse" : ""}`}
+      />
       {text}
     </p>
   );
