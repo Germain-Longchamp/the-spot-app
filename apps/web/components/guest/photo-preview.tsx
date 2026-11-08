@@ -1,12 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PrintButton } from "@/components/print-button";
+import { MyPrints } from "@/components/guest/my-prints";
+import { Screen } from "@/components/guest/screen";
+import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { Logo } from "@/components/ui/logo";
-import { MyPrints } from "@/components/guest/my-prints";
+import { CameraIcon, GalleryIcon, PrinterIcon } from "@/components/ui/icons";
+import { Switch } from "@/components/ui/switch";
 import { sendPhoto } from "@/lib/guest/send-photo";
+import { printRequestMessages } from "@/lib/print/request-print";
+import { usePrintRequest } from "@/lib/print/use-print-request";
 import { createClient } from "@/lib/supabase/client";
 
 const unavailableMessages: Record<string, string> = {
@@ -21,29 +26,42 @@ const failure =
   "Votre photo n'a pas pu être envoyée. Vérifiez votre connexion, puis réessayez.";
 const closed = "Cet événement est terminé : votre photo n'a pas été envoyée.";
 
+type Stage = "review" | "sending" | "done";
+
 interface Props {
   photo: Blob;
   eventId: string;
   guestId: string;
   galleryEnabled: boolean;
   galleryVisible: boolean;
+  /** Link to the gallery, offered at the end when the photo is in it. */
+  galleryHref?: string;
+  /** Back to the event home. */
   onDone: () => void;
+  /** Straight to the camera, for the next photo. */
+  onAnother?: () => void;
 }
 
+/**
+ * From the photo just taken to the end of the flow, one screen per step:
+ * review, sending, done. Nothing leaves the phone before the guest chooses.
+ */
 export function PhotoPreview({
   photo,
   eventId,
   guestId,
   galleryEnabled,
   galleryVisible,
+  galleryHref,
   onDone,
+  onAnother,
 }: Props) {
   const [url, setUrl] = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage>("review");
   const [published, setPublished] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
   const [printed, setPrinted] = useState(false);
   const [unavailable, setUnavailable] = useState<string | null>(null);
 
@@ -52,6 +70,7 @@ export function PhotoPreview({
   const photoId = useMemo(() => crypto.randomUUID(), []);
   const sent = useRef(false);
   const sending = useRef<Promise<boolean> | null>(null);
+  const print = usePrintRequest(photoId);
 
   useEffect(() => {
     const objectUrl = URL.createObjectURL(photo);
@@ -97,92 +116,254 @@ export function PhotoPreview({
     return sending.current;
   }
 
+  // One action at a time: a double tap must not start a second one, nor
+  // bounce the screen back while the first is still running.
+  const acting = useRef(false);
+
   async function validate() {
-    if (await ensureSent()) setDone(true);
+    if (acting.current) return;
+    acting.current = true;
+    setStage("sending");
+    setStage((await ensureSent()) ? "done" : "review");
+    acting.current = false;
   }
 
-  const busy = progress !== null;
+  async function printPhoto() {
+    if (acting.current) return;
+    acting.current = true;
+    const fromDone = stage === "done";
+    setStage("sending");
+    const outcome = await print.press(ensureSent);
+    if (outcome === "created") {
+      setPrinted(true);
+      setStage("done");
+    } else {
+      // The upload failed (error is set) or the server said no (outcome
+      // message): back where the guest was, the photo is not lost.
+      setStage(fromDone && sent.current ? "done" : "review");
+    }
+    acting.current = false;
+  }
+
+  const inGallery = galleryEnabled && published;
+  const refusal =
+    print.outcome && print.outcome !== "created"
+      ? printRequestMessages[print.outcome]
+      : null;
+
+  if (stage === "sending") {
+    return (
+      <Screen stepKey="sending">
+        <SendingView progress={progress} retrying={retrying} />
+      </Screen>
+    );
+  }
+
+  if (stage === "done") {
+    return (
+      <Screen
+        stepKey={printed ? "printed" : "saved"}
+        footer={
+          <>
+            <Button icon={<CameraIcon size={20} />} onClick={onAnother ?? onDone}>
+              Prendre une autre photo
+            </Button>
+            <Button variant="secondary" onClick={onDone}>
+              Retour à l&apos;accueil
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col items-center gap-3 pt-2 text-center">
+          <SuccessMark />
+          <h1 className="text-2xl font-semibold">
+            {printed ? "C'est parti pour l'impression !" : "Photo enregistrée"}
+          </h1>
+          <p role="status" className="text-muted">
+            {printed
+              ? printRequestMessages.created
+              : !inGallery
+                ? "Votre photo est bien envoyée."
+                : galleryVisible
+                  ? "Votre photo est bien envoyée et ajoutée à la galerie."
+                  : "Votre photo est bien envoyée. Elle apparaîtra dans la galerie dès son ouverture."}
+          </p>
+        </div>
+
+
+        {printed ? (
+          <div className="flex flex-col gap-3">
+            {/* Always visible on the print screens (UX rule 1), even before
+                the request shows up in the tracking below. */}
+            <PrinterStatus eventId={eventId} />
+            <MyPrints eventId={eventId} photoId={photoId} showPrinterStatus={false} />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {refusal && <ErrorMessage>{refusal}</ErrorMessage>}
+            <Button
+              variant="secondary"
+              icon={<PrinterIcon size={20} />}
+              onClick={printPhoto}
+              disabled={print.finished || unavailable !== null}
+            >
+              Imprimer
+            </Button>
+            {unavailable && <p className="text-sm text-muted">{unavailable}</p>}
+          </div>
+        )}
+
+        {url && <Polaroid src={url} small />}
+
+        {inGallery && galleryVisible && galleryHref && (
+          <Link
+            href={galleryHref}
+            className="inline-flex min-h-11 items-center gap-2 self-center font-semibold text-accent underline"
+          >
+            <GalleryIcon size={20} />
+            Voir la galerie
+          </Link>
+        )}
+      </Screen>
+    );
+  }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col gap-4 p-4">
-      <Logo variant="icon" width={28} className="self-center" />
-      {url && (
-        // A local blob: there is nothing for an image optimizer to do.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="Votre photo" className="w-full rounded-lg" />
-      )}
+    <Screen
+      stepKey="review"
+      back={{ label: "Reprendre", onClick: onDone }}
+      title="Votre photo"
+      footer={
+        <>
+          <Button
+            icon={<PrinterIcon size={20} />}
+            onClick={printPhoto}
+            disabled={print.finished || unavailable !== null}
+          >
+            Imprimer
+          </Button>
+          <Button variant="secondary" onClick={validate}>
+            {error ? "Réessayer sans imprimer" : "Valider sans imprimer"}
+          </Button>
+        </>
+      }
+    >
+      {url && <Polaroid src={url} />}
 
-      {!done && galleryEnabled && (
-        <label className="flex min-h-12 items-center gap-3">
-          <input
-            type="checkbox"
-            checked={published}
-            disabled={busy}
-            onChange={(event) => setPublished(event.target.checked)}
-            className="size-5"
-          />
-          Ajouter à la galerie de l&apos;événement
-        </label>
-      )}
+      <PrinterStatus eventId={eventId} />
 
-      {busy && (
-        <div className="flex flex-col gap-1">
-          <p role="status">
-            {retrying
-              ? "La connexion est lente, nous réessayons. Ne fermez pas la page."
-              : "Envoi de votre photo…"}
-          </p>
-          <progress
-            aria-label="Progression de l'envoi"
-            value={progress}
-            max={1}
-            className="w-full"
-          />
-        </div>
+      {(unavailable || refusal) && (
+        <p role="status" className="rounded-2xl bg-brand-soft p-4 text-on-brand">
+          {refusal ?? unavailable}
+        </p>
       )}
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
-      <PrintButton
-        photoId={photoId}
-        eventId={eventId}
-        unavailable={unavailable}
-        beforePrint={ensureSent}
-        onCreated={() => {
-          setPrinted(true);
-          setDone(true);
-        }}
+      {galleryEnabled && (
+        <Switch
+          label="Ajouter à la galerie de l'événement"
+          hint={
+            galleryVisible
+              ? "Les autres invités pourront la voir."
+              : "Elle sera visible à l'ouverture de la galerie."
+          }
+          checked={published}
+          onChange={setPublished}
+        />
+      )}
+    </Screen>
+  );
+}
+
+/** The photo, framed like a print: what the guest is about to get. */
+function Polaroid({ src, small = false }: { src: string; small?: boolean }) {
+  return (
+    <div
+      className={`mx-auto w-full rounded-2xl bg-surface p-3 pb-8 shadow-lift ${
+        small ? "max-w-44" : "max-w-sm"
+      }`}
+    >
+      {/* A local blob: there is nothing for an image optimizer to do. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="Votre photo"
+        className="max-h-[52dvh] w-full rounded-lg object-contain"
       />
+    </div>
+  );
+}
 
-      {printed && (
-        // The print button above already shows the printer's state.
-        <MyPrints eventId={eventId} photoId={photoId} showPrinterStatus={false} />
-      )}
+function SendingView({
+  progress,
+  retrying,
+}: {
+  progress: number | null;
+  retrying: boolean;
+}) {
+  const uploading = progress !== null;
+  const circumference = 2 * Math.PI * 44;
 
-      {done && !printed && (
-        <p role="status">
-          {!(published && galleryEnabled)
-            ? "Votre photo est bien envoyée."
-            : galleryVisible
-              ? "Votre photo est bien envoyée et ajoutée à la galerie."
-              : "Votre photo est bien envoyée. Elle apparaîtra dans la galerie dès son ouverture."}
-        </p>
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 py-12 text-center">
+      <div className="relative size-32">
+        <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden="true">
+          <circle cx="50" cy="50" r="44" className="fill-none stroke-divider" strokeWidth="8" />
+          <circle
+            cx="50"
+            cy="50"
+            r="44"
+            className={`fill-none stroke-accent transition-[stroke-dashoffset] duration-300 ${
+              uploading ? "" : "animate-soft-pulse"
+            }`}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - (progress ?? 1))}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-accent">
+          <PrinterIcon size={36} />
+        </span>
+      </div>
+      <p role="status" className="text-lg font-semibold">
+        {retrying
+          ? "La connexion est lente, nous réessayons. Ne fermez pas la page."
+          : uploading
+            ? "Envoi de votre photo…"
+            : "Envoi de votre demande…"}
+      </p>
+      {uploading && (
+        <progress
+          aria-label="Progression de l'envoi"
+          value={progress ?? 0}
+          max={1}
+          className="sr-only"
+        />
       )}
+      <p className="text-muted">Quelques secondes, nous nous occupons de tout.</p>
+    </div>
+  );
+}
 
-      {done ? (
-        <Button variant="secondary" onClick={onDone}>
-          Prendre une autre photo
-        </Button>
-      ) : (
-        <>
-          <Button variant="secondary" disabled={busy} onClick={validate}>
-            {error ? "Réessayer sans imprimer" : "Valider sans imprimer"}
-          </Button>
-          <Button variant="secondary" disabled={busy} onClick={onDone}>
-            Reprendre
-          </Button>
-        </>
-      )}
-    </main>
+/** A check that draws itself: the flow is over, and it went well. */
+function SuccessMark() {
+  return (
+    <span className="flex size-20 animate-pop-in items-center justify-center rounded-full bg-success text-surface shadow-lift">
+      <svg viewBox="0 0 24 24" className="size-10" aria-hidden="true">
+        <path
+          d="M20 6 9 17l-5-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="24"
+          strokeDashoffset="24"
+          className="animate-draw-check"
+        />
+      </svg>
+    </span>
   );
 }

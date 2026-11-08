@@ -5,5 +5,23 @@
 @layer base {
   body {
     @apply bg-background font-sans text-foreground;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Keyboard focus is always visible (UX rule 7), never on a tap. */
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-accent;
+  }
+}
+
+/* The phone asks for less motion: no animation, no transition (SCRUM-46). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

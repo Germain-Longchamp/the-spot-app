@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PrinterStatus } from "@/components/printer-status";
+import { PrintSteps } from "@/components/guest/print-steps";
 import { guestStatusLabel, PrintJobStatus } from "@/lib/print/job-status";
 import { loadMyPrints, MyPrint, requestTime } from "@/lib/print/my-prints";
 import { createClient } from "@/lib/supabase/client";
@@ -73,25 +74,30 @@ export function MyPrints({ eventId, photoId, showPrinterStatus = true }: Props) 
       data-testid="my-prints"
       className="flex flex-col gap-3"
     >
-      <h2 id="my-prints-title" className="text-lg font-semibold">
-        {photoId ? "Suivi de votre impression" : "Vos impressions"}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="my-prints-title" className="text-lg font-semibold">
+          {photoId ? "Suivi de votre impression" : "Vos impressions"}
+        </h2>
+        {showPrinterStatus && <PrinterStatus eventId={eventId} />}
+      </div>
 
-      {showPrinterStatus && <PrinterStatus eventId={eventId} />}
-
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-3">
         {shown.map((print) => (
           <li
             key={print.id}
             data-testid="print-request"
-            className="rounded-lg border border-border bg-surface p-3"
+            className="flex flex-col gap-3 rounded-2xl bg-surface p-4 shadow-card"
           >
             <p className="text-sm text-muted">
               Demandée à {requestTime(print.createdAt)}
             </p>
-            <p role="status" aria-live="polite" className={tone[print.status]}>
-              {guestStatusLabel(print.status)}
-            </p>
+            {photoId ? (
+              <PrintSteps status={print.status} />
+            ) : (
+              <p role="status" aria-live="polite" className={tone[print.status]}>
+                {guestStatusLabel(print.status)}
+              </p>
+            )}
           </li>
         ))}
       </ul>

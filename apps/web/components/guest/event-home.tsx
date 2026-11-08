@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
 import { ErrorMessage } from "@/components/ui/error-message";
+import {
+  CameraIcon,
+  ChevronRightIcon,
+  GalleryIcon,
+  ImageIcon,
+} from "@/components/ui/icons";
 import { Logo } from "@/components/ui/logo";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 
@@ -12,7 +18,49 @@ interface Props {
   importing?: boolean;
   importError?: string | null;
   /** Shown below the main actions, so they stay first on screen. */
-  children?: React.ReactNode;
+  children?: ReactNode;
+}
+
+const howItWorks = ["Prenez ou choisissez une photo", "Imprimez-la", "Récupérez-la près de l'imprimante"];
+
+/**
+ * The two ways in have the same weight (SCRUM-27): big tiles side by side,
+ * easy to hit with a thumb, visible without scrolling on any phone.
+ */
+function ActionTile({
+  icon,
+  title,
+  hint,
+  onClick,
+  busy = false,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint: string;
+  onClick?: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      aria-busy={busy}
+      className="flex min-h-36 flex-col items-start justify-between gap-4 rounded-3xl bg-accent p-4 text-left text-on-accent shadow-lift transition-transform duration-150 active:scale-[0.97] disabled:opacity-70"
+    >
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-surface/20">
+        {busy ? (
+          <span aria-hidden="true" className="size-6 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        ) : (
+          icon
+        )}
+      </span>
+      <span className="flex flex-col">
+        <span className="text-lg font-semibold leading-tight">{busy ? "Patientez…" : title}</span>
+        <span className="text-sm opacity-90">{hint}</span>
+      </span>
+    </button>
+  );
 }
 
 export function EventHome({
@@ -25,29 +73,55 @@ export function EventHome({
   children,
 }: Props) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-4">
-      <Logo width={256} className="self-center" />
-
-      <div className="flex flex-col gap-2">
+    <main className="mx-auto flex min-h-[100dvh] w-full max-w-md animate-screen-in flex-col gap-6 px-4 pb-10 pt-6">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Logo width={232} />
         <h1 className="break-words text-2xl font-semibold">{event.name}</h1>
-        <span aria-hidden="true" className="h-1 w-12 rounded-full bg-brand" />
         <p className="text-muted">
-          Prenez une photo ou choisissez-en une pour l&apos;imprimer.
+          Prenez une photo ou choisissez-en une : on l&apos;imprime pour vous.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <Button onClick={onTakePhoto}>Prendre une photo</Button>
-        <Button onClick={onImportPhoto} loading={importing}>
-          Importer une photo
-        </Button>
+      <div className="grid grid-cols-2 gap-3">
+        <ActionTile
+          icon={<CameraIcon size={26} />}
+          title="Prendre une photo"
+          hint="Avec la caméra"
+          onClick={onTakePhoto}
+        />
+        <ActionTile
+          icon={<ImageIcon size={26} />}
+          title="Importer une photo"
+          hint="Depuis vos photos"
+          onClick={onImportPhoto}
+          busy={importing}
+        />
       </div>
 
       {importError && <ErrorMessage>{importError}</ErrorMessage>}
 
+      <ol aria-label="Comment ça marche" className="grid grid-cols-3 gap-2 text-center text-sm text-muted">
+        {howItWorks.map((step, index) => (
+          <li key={step} className="flex flex-col items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="flex size-8 items-center justify-center rounded-full bg-brand-soft font-semibold text-on-brand"
+            >
+              {index + 1}
+            </span>
+            {step}
+          </li>
+        ))}
+      </ol>
+
       {event.galleryEnabled && event.galleryVisible && (
-        <Link href={`/e/${token}/galerie`} className="min-h-12 py-3 text-center underline">
-          Voir la galerie
+        <Link
+          href={`/e/${token}/galerie`}
+          className="flex min-h-14 items-center gap-3 rounded-2xl bg-surface px-4 font-semibold shadow-card transition-transform active:scale-[0.98]"
+        >
+          <GalleryIcon size={22} className="text-accent" />
+          <span className="flex-1">Voir la galerie</span>
+          <ChevronRightIcon size={20} className="text-muted" />
         </Link>
       )}
 

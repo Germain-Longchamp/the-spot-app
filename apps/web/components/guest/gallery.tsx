@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
+import { ArrowLeftIcon } from "@/components/ui/icons";
 import { Logo } from "@/components/ui/logo";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 import {
@@ -22,12 +23,16 @@ export function Gallery({ event, token }: Props) {
   const open = event.galleryEnabled && event.galleryVisible;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-4">
+    <main className="mx-auto flex min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-4 p-4">
       <header className="flex items-center justify-between gap-3">
-        <Logo variant="short" width={140} />
-        <Link href={`/e/${token}`} className="min-h-12 py-3 underline">
+        <Link
+          href={`/e/${token}`}
+          className="-ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 font-semibold transition-transform active:scale-95"
+        >
+          <ArrowLeftIcon size={22} />
           Retour à l&apos;accueil
         </Link>
+        <Logo variant="icon" width={32} />
       </header>
       <h1 className="text-2xl font-semibold">Galerie de l&apos;événement</h1>
 
@@ -115,7 +120,7 @@ function GalleryGrid({ eventId }: { eventId: string }) {
                 alt="Photo de la galerie"
                 loading="lazy"
                 onError={() => forget(photo.id)}
-                className="aspect-square w-full rounded-lg object-cover"
+                className="aspect-square w-full rounded-xl object-cover shadow-card transition-transform active:scale-95"
               />
             </button>
           </li>
