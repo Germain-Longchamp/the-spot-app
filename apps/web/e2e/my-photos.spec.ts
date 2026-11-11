@@ -203,16 +203,20 @@ test("une photo prête depuis longtemps ne s'affiche plus en bandeau", async ({ 
   await expect(banner(page)).toHaveCount(0);
 });
 
-test("le bandeau ouvre la photo concernée, et l'on revient à l'accueil", async ({ page }) => {
+test("le bandeau ouvre « Vos tirages », puis la photo, et l'on revient pas à pas", async ({ page }) => {
   await mockAlbum(page, { photos: [{ id: "a" }], jobs: [fakeJob("j1", "DONE", "a")] });
   await openHome(page);
 
   await expect(banner(page)).toContainText("prête");
   await banner(page).click();
+  await expect(page.getByRole("heading", { name: "Vos tirages" })).toBeVisible();
 
+  await page.getByTestId("print-card").click();
   await expect(page.getByRole("heading", { name: "Votre photo" })).toBeVisible();
   await expect(page.getByRole("list", { name: "Étapes de l'impression" })).toBeVisible();
 
+  await page.getByRole("button", { name: "Vos tirages" }).click();
+  await expect(page.getByRole("heading", { name: "Vos tirages" })).toBeVisible();
   await page.getByRole("button", { name: "Accueil" }).click();
   await expect(page.getByRole("button", { name: "Prendre une photo" })).toBeVisible();
 });
@@ -235,6 +239,7 @@ for (const status of ["STUCK", "FAILED"] as const) {
     await expect(banner(page)).toContainText("équipe");
 
     await banner(page).click();
+    await page.getByTestId("print-card").click();
 
     await expect(page.getByRole("status").filter({ hasText: guestStatusLabel(status) })).toBeVisible();
     await expect(page.locator("body")).not.toContainText(RAW);
