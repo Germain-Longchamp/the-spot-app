@@ -81,6 +81,7 @@ export const GUEST_ID = "33333333-3333-4333-8333-333333333333";
 
 interface PhotoBackend {
   availability?: string;
+  printerOnline?: boolean;
   uploadFailures?: number;
   uploadDelayMs?: number;
   uploadStatus?: number;
@@ -95,7 +96,7 @@ export async function mockPhotoBackend(page: Page, backend: PhotoBackend = {}) {
   };
 
   await page.route("**/rest/v1/rpc/get_printer_status", (route) =>
-    json(route, true)
+    json(route, backend.printerOnline ?? true)
   );
   await page.route("**/rest/v1/rpc/get_print_availability", (route) =>
     json(route, backend.availability ?? "available")
