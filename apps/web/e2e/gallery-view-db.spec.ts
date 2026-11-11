@@ -276,3 +276,45 @@ test("la vue de galerie n'a aucune colonne d'identité d'invité", async () => {
   ]);
   expect(columns.some((name) => name.includes("guest") || name.includes("user"))).toBe(false);
 });
+
+/**
+ * SCRUM-56 — Scenario: Aucune fuite galerie fermée
+ *   Given la galerie est fermée
+ *   When j'interroge la base avec ma session
+ *   Then je n'obtiens aucune photo des autres invités
+ */
+test("galerie fermée : ni la vue, ni la table, ni les fichiers des autres", async () => {
+  const f = await db.seed();
+  await gallery(f.eventId, true, false);
+  const other = await db.seedGuest(f.eventId);
+  const theirs = [
+    await photoOf({ userId: other.userId, eventId: f.eventId }, true),
+    await photoOf({ userId: other.userId, eventId: f.eventId }, true),
+    await photoOf({ userId: other.userId, eventId: f.eventId }, true),
+  ];
+  await photoOf(f, true);
+
+  const ids: string[] = theirs.map((photo) => photo.photoId);
+  const view = await viewOf(f.userId, f.eventId);
+  expect(view.some((row) => ids.includes(row.id))).toBe(false);
+  expect((await galleryOf(f.userId, f.eventId)).some((id) => ids.includes(id))).toBe(false);
+  const files = await filesSeenBy(f.userId);
+  expect(files.some((name) => theirs.some((photo) => name === photo.file))).toBe(false);
+});
+
+test("réglages de galerie : lisibles pour mon événement seulement", async () => {
+  const f = await db.seed();
+  const elsewhere = await db.seed();
+  const read = (eventId: string) =>
+    db.as("authenticated", f.userId, async (client) =>
+      (
+        await client.query(
+          "select gallery_enabled, gallery_visible from public.events where id = $1",
+          [eventId]
+        )
+      ).rows
+    );
+
+  expect(await read(f.eventId)).toHaveLength(1);
+  expect(await read(elsewhere.eventId)).toEqual([]);
+});

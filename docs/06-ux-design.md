@@ -120,3 +120,11 @@ Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/a
 - Une photo supprimée par l'équipe disparaît à la relecture suivante. Réseau coupé : la grille reste, « Connexion perdue, nouvelle tentative… », reprise automatique.
 - Maquette d'Alison (4-galerie) : retour « Accueil », titre « Galerie » en framboise et nombre de photos, grille 3 colonnes espacées de 6 px, coins de 8 px, pastille « Vous » blanche, bouton flottant « Prendre une photo » qui ouvre la caméra depuis l'accueil (`/e/<jeton>#photo`).
 - « Vous » est calculé par la vue `gallery_photos` (SCRUM-63) : aucun identifiant d'invité n'arrive sur le téléphone.
+
+## Galerie surprise (SCRUM-56)
+
+- Galerie activée mais fermée : l'entrée de l'accueil reste (« Dévoilée plus tard · 2 de vos photos ») et ouvre la Galerie en mode surprise (maquette 6-galerie-surprise) : carte « La galerie est une surprise », « La galerie de [nom de l'événement] sera dévoilée plus tard. En attendant, vos photos sont bien gardées. », puis « Vos photos » avec leur nombre et la grille, et le bouton « Prendre une photo ».
+- Seules les photos de l'invité reviennent de la base (RLS de la vue `gallery_photos`), partagées ou non (« Non partagée »).
+- La page relit les réglages de galerie de l'événement toutes les 10 s : quand l'équipe ouvre la galerie, l'écran bascule sur la galerie complète, sans recharger.
+- Aucune photo : « Vous n'avez pas encore de photo. » Réseau coupé : dernier état affiché.
+- Galerie désactivée : pas d'écran surprise, la page s'appelle « Vos photos ».

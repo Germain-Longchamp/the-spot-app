@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PhotoDetail, useAlbum } from "@/components/guest/album";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { ArrowLeftIcon, ArrowUpIcon, CameraIcon } from "@/components/ui/icons";
+import { ArrowLeftIcon, ArrowUpIcon, CameraIcon, GiftIcon } from "@/components/ui/icons";
 import { Logo } from "@/components/ui/logo";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 import {
@@ -15,6 +15,7 @@ import {
   GALLERY_POLL_INTERVAL_MS,
   GalleryPhoto,
   loadGalleryPage,
+  loadGalleryState,
   loadGalleryRows,
   newPhotosText,
   signFullImage,
@@ -36,8 +37,28 @@ interface Props {
  * way to print it. Kept fresh on its own (SCRUM-54).
  */
 export function Gallery({ event, token, guestId }: Props) {
-  const open = event.galleryEnabled && event.galleryVisible;
-  const closed = event.galleryEnabled && !event.galleryVisible;
+  // The team may open the gallery meanwhile (SCRUM-56): read again on the
+  // gallery's own pace, the screen switches at the next read.
+  const [state, setState] = useState({
+    enabled: event.galleryEnabled,
+    visible: event.galleryVisible,
+  });
+  useEffect(() => {
+    const supabase = createClient();
+    const tick = async () => {
+      if (document.visibilityState === "hidden") return;
+      const next = await loadGalleryState(supabase, event.id);
+      if (next) {
+        setState((current) =>
+          current.enabled === next.enabled && current.visible === next.visible ? current : next
+        );
+      }
+    };
+    const timer = setInterval(tick, GALLERY_POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [event.id]);
+  const open = state.enabled && state.visible;
+  const closed = state.enabled && !state.visible;
   const album = useAlbum(event.id, guestId, true);
   const [mineOpened, setMineOpened] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
@@ -75,23 +96,44 @@ export function Gallery({ event, token, guestId }: Props) {
         </header>
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-2xl font-bold text-accent">
-            {event.galleryEnabled ? "Galerie" : "Vos photos"}
+            {state.enabled ? "Galerie" : "Vos photos"}
           </h1>
-          {count !== null && count > 0 && (
+          {!closed && count !== null && count > 0 && (
             <span data-testid="gallery-total" className="text-[13px] text-muted">
               {count === 1 ? "1 photo" : `${count} photos`}
             </span>
           )}
         </div>
 
+        {/* The surprise (SCRUM-56): only the guest's own photos come back. */}
         {closed && (
-          <p className="text-lg">
-            La galerie sera disponible plus tard. En attendant, vous retrouvez
-            ici vos photos.
-          </p>
+          <>
+            <section
+              data-testid="gallery-surprise"
+              className="flex flex-col items-center gap-3 rounded-2xl border border-divider bg-surface px-6 py-7 text-center"
+            >
+              <span className="flex size-16 items-center justify-center rounded-full bg-brand-soft text-on-brand">
+                <GiftIcon size={28} />
+              </span>
+              <h2 className="text-lg font-bold">La galerie est une surprise</h2>
+              <p className="text-sm text-muted">
+                La galerie de {event.name} sera dévoilée plus tard. En attendant, vos
+                photos sont bien gardées.
+              </p>
+            </section>
+            <div className="flex items-baseline justify-between gap-3 pt-1">
+              <h2 className="font-bold">Vos photos</h2>
+              {count !== null && count > 0 && (
+                <span data-testid="gallery-total" className="text-[13px] text-muted">
+                  {count === 1 ? "1 photo" : `${count} photos`}
+                </span>
+              )}
+            </div>
+          </>
         )}
 
         <GalleryGrid
+          key={open ? "open" : "own"}
           eventId={event.id}
           open={open}
           onCount={setCount}
@@ -159,6 +201,11 @@ function GalleryGrid({
   const load = useCallback(
     async (nextPage: number) => {
       setLoading(true);
+      if (nextPage === 0) {
+        countGalleryPhotos(supabase.current, eventId, "all").then(
+          (count) => count !== null && onCount(count)
+        );
+      }
       const result = await loadGalleryPage(supabase.current, eventId, nextPage);
       setLoading(false);
       if (!result) {
@@ -173,7 +220,7 @@ function GalleryGrid({
       setPage(nextPage);
       setMore(result.more);
     },
-    [eventId]
+    [eventId, onCount]
   );
 
   /** Shows the photos that arrived meanwhile, on top. */
@@ -261,7 +308,7 @@ function GalleryGrid({
         <p className="text-lg">
           {open
             ? "Aucune photo pour l'instant. Partagez la vôtre depuis l'accueil : elle apparaîtra ici."
-            : "Vos photos apparaîtront ici dès que vous en aurez envoyé une."}
+            : "Vous n'avez pas encore de photo."}
         </p>
         {offlineNotice}
       </div>
