@@ -9,5 +9,6 @@
 | `05-donnees.md` | Modèle de données proposé (à valider) et règles d'accès |
 | `06-ux-design.md` | Règles UX non négociables, direction visuelle, ton des textes |
 | `07-methode.md` | Comment travailler avec Claude Code sur ce projet |
+| `design/alison-2026-11/` | Maquettes invités d'Alison : référence d'intégration des écrans, écarts décidés |
 
 Statut des contenus : ce qui est marqué **validé** a été décidé par Germain. Ce qui est marqué **proposition** ou **hypothèse** doit être confirmé avant d'être considéré comme acquis.

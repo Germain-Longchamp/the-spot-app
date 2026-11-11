@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Personnaliser le cadre</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#AD354E}a:hover{color:#8E2A3F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F6EDE3; font-family: Inter, system-ui, sans-serif; color: #2B1A1E; display: flex; flex-direction: column; padding: 20px 24px 28px; gap: 18px">
+  <div style="display: flex; align-items: center; justify-content: space-between; min-height: 44px">
+    <a href="1-accueil.html" style="display: flex; align-items: center; gap: 6px; min-height: 44px; text-decoration: none; color: #2B1A1E; font-size: 15px; font-weight: 600">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2B1A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+      Retour
+    </a>
+    <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #5A474B">Étape 2 sur 2</span>
+  </div>
+
+  <h1 style="margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; color: #AD354E">Personnalisez votre tirage</h1>
+
+  <div style="display: flex; justify-content: center">
+    <div style="width: 248px; background: #FFFFFF; padding: 12px 12px 0; box-sizing: border-box; border-radius: 4px; box-shadow: 0 10px 28px rgba(43,26,30,0.14)">
+      <svg width="224" height="224" viewBox="0 0 224 224" role="img" aria-label="Aperçu de votre photo" style="display: block">
+        <rect width="224" height="224" fill="#E9CFC0"></rect>
+        <rect y="160" width="224" height="64" fill="#D9B3A2"></rect>
+        <g fill="#F6EDE3"><circle cx="20" cy="26" r="3"></circle><circle cx="52" cy="34" r="3"></circle><circle cx="84" cy="38" r="3"></circle><circle cx="116" cy="36" r="3"></circle><circle cx="148" cy="32" r="3"></circle><circle cx="180" cy="26" r="3"></circle><circle cx="208" cy="20" r="3"></circle></g>
+        <circle cx="84" cy="92" r="22" fill="#B06B6E"></circle><rect x="56" y="118" width="56" height="106" rx="26" fill="#B06B6E"></rect>
+        <circle cx="142" cy="98" r="21" fill="#8E4A55"></circle><rect x="115" y="123" width="54" height="101" rx="25" fill="#8E4A55"></rect>
+      </svg>
+      <div style="height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-size: 16px; font-weight: 700; color: #AD354E">Vive les mariés !</span>
+          <span style="font-size: 10.5px; letter-spacing: 0.08em; color: #5A474B">CAMILLE &amp; HUGO · 14.06.2027</span>
+        </div>
+        <img src="../assets/icone-couleur.png" alt="" style="width: 22px; height: 22px; flex-shrink: 0">
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <label for="mot" style="font-size: 14px; font-weight: 600">Votre petit mot sur le cadre</label>
+    <div style="display: flex; align-items: center; gap: 8px; min-height: 48px; box-sizing: border-box; padding: 0 14px; background: #FFFFFF; border: 1.5px solid #AD354E; border-radius: 12px">
+      <input id="mot" type="text" value="Vive les mariés !" maxlength="30" style="all: unset; flex-grow: 1; font-size: 16px; color: #2B1A1E">
+      <span style="font-size: 12px; color: #5A474B">17/30</span>
+    </div>
+    <span style="font-size: 12.5px; color: #5A474B">Il vous aidera aussi à reconnaître votre tirage à l'imprimante.</span>
+  </div>
+
+  <label style="display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 14px; cursor: pointer">
+    <input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #AD354E; margin: 0">
+    Ajouter aussi à la galerie de l'événement
+  </label>
+
+  <div style="flex-grow: 1"></div>
+
+  <a href="3-file-attente.html" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: 16px; background: #AD354E; color: #FFFFFF; text-decoration: none; font-size: 17px; font-weight: 700">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="4" y="9" width="16" height="7" rx="2"></rect><path d="M7 14h10v6H7z"></path></svg>
+    Imprimer ma photo
+  </a>
+  <a href="4-galerie.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin-top: -8px; border-radius: 16px; color: #AD354E; text-decoration: none; font-size: 15px; font-weight: 600">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#AD354E" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg>
+    Partager dans la galerie sans imprimer
+  </a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
