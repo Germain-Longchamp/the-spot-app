@@ -42,16 +42,25 @@ test("les deux actions sont visibles sans défiler, à la même taille", async (
 });
 
 /**
- * Scenario: Galerie masquée
- *   Given la galerie n'est pas visible
- *   Then aucun lien vers la galerie n'est affiché
+ * SCRUM-63 — Scenario: Une seule entrée
+ *   The gallery link stays on the home even while the gallery is closed: it is
+ *   where the guest finds their own photos.
  */
-test("galerie masquée : aucun lien", async ({ page }) => {
+test("galerie masquée : le lien reste, pour retrouver ses photos", async ({ page }) => {
   await mockGuestBackend(page);
   await page.goto(URL);
-  await expect(page.getByRole("heading")).toBeVisible();
 
-  await expect(page.getByRole("link", { name: "galerie" })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Galerie de l'événement" })
+  ).toBeVisible();
+});
+
+test("événement sans galerie : le lien s'appelle « Vos photos »", async ({ page }) => {
+  await mockGuestBackend(page, { event: { gallery_enabled: false } });
+  await page.goto(URL);
+
+  await expect(page.getByRole("link", { name: "Vos photos" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Galerie de l'événement" })).toHaveCount(0);
 });
 
 test("galerie visible : le lien apparaît", async ({ page }) => {

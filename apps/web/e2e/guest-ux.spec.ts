@@ -2,6 +2,11 @@ import { crc32, deflateSync } from "node:zlib";
 import { test, expect, Locator, Page } from "@playwright/test";
 import { json, mockGuestBackend, mockPhotoBackend, TEST_EVENT } from "./support/guest-mocks";
 
+/** The photo files sent, without the gallery thumbnails (shared by default, SCRUM-63). */
+const photoFiles = <T extends { path: string }>(uploads: T[]) =>
+  uploads.filter((upload) => !upload.path.endsWith("-thumb.jpg"));
+
+
 const URL = "/e/jeton-de-test";
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -125,7 +130,8 @@ test("aperçu : actions fixées en bas, « Reprendre » en haut, même après d�
 }) => {
   await openReview(page);
 
-  await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).not.toBeChecked();
+  // Shared by default since SCRUM-63.
+  await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).toBeChecked();
   const print = page.getByRole("button", { name: "Imprimer", exact: true });
   const validate = page.getByRole("button", { name: "Valider sans imprimer" });
   const back = page.getByRole("button", { name: "Reprendre" });
@@ -139,14 +145,15 @@ test("aperçu : actions fixées en bas, « Reprendre » en haut, même après d�
   await expect(page.getByTestId("printer-status")).toBeVisible();
 });
 
-test("l'interrupteur de galerie se coche au toucher et reste une case à cocher", async ({
+test("l'interrupteur de galerie se décoche au toucher et reste une case à cocher", async ({
   page,
 }) => {
   await openReview(page);
 
   await page.getByText("Ajouter à la galerie de l'événement").click();
 
-  await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).toBeChecked();
+  // Ticked by default (SCRUM-63): one touch unticks it.
+  await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).not.toBeChecked();
 });
 
 /**
@@ -213,13 +220,18 @@ test("« Prendre une autre photo » ouvre directement la caméra", async ({ page
   ).toBeVisible();
 });
 
-test("la confirmation mène à « Mes photos »", async ({ page }) => {
+/**
+ * SCRUM-63: the confirmation leads to the gallery, where the guest's photos are.
+ */
+test("la confirmation mène à la galerie", async ({ page }) => {
   await openReview(page);
+  await page.route("**/rest/v1/gallery_photos?**", (route) => json(route, []));
   await page.getByRole("button", { name: "Imprimer", exact: true }).click();
 
-  await page.getByRole("button", { name: "Voir mes photos" }).click();
+  await page.getByRole("link", { name: "Voir la galerie" }).click();
 
-  await expect(page.getByRole("heading", { name: "Mes photos" })).toBeVisible();
+  await expect(page).toHaveURL(/\/galerie$/);
+  await expect(page.getByRole("heading", { name: "Galerie de l'événement" })).toBeVisible();
 });
 
 test("valider sans imprimer, puis imprimer depuis la confirmation", async ({ page }) => {
@@ -231,7 +243,7 @@ test("valider sans imprimer, puis imprimer depuis la confirmation", async ({ pag
   await page.getByRole("button", { name: "Imprimer", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "C'est parti pour l'impression !" })).toBeVisible();
-  expect(backend.uploads).toHaveLength(1);
+  expect(photoFiles(backend.uploads)).toHaveLength(1);
   expect(backend.prints).toHaveLength(1);
 });
 

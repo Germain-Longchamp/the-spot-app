@@ -2,13 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera } from "@/components/guest/camera";
-import {
-  AlbumEntry,
-  AlbumScreen,
-  PhotoDetail,
-  PrintBanner,
-  useAlbum,
-} from "@/components/guest/album";
+import { PhotoDetail, PrintBanner, useAlbum } from "@/components/guest/album";
 import { EventHome } from "@/components/guest/event-home";
 import { PhotoPreview } from "@/components/guest/photo-preview";
 import type { GuestEvent } from "@/lib/guest/enter-event";
@@ -18,7 +12,6 @@ type Screen =
   | { name: "home" }
   | { name: "camera" }
   | { name: "preview"; photo: Blob }
-  | { name: "album" }
   | { name: "photo"; photoId: string };
 
 interface Props {
@@ -35,11 +28,11 @@ export function GuestFlow({ event, guestId, token }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const home = () => setScreen({ name: "home" });
-  const openAlbum = () => setScreen({ name: "album" });
   const openPhoto = (photoId: string) => setScreen({ name: "photo", photoId });
+  const galleryHref = `/e/${token}/galerie`;
 
   // Read only on the screens that show it: never while taking a photo.
-  const albumShown = screen.name === "home" || screen.name === "album" || screen.name === "photo";
+  const albumShown = screen.name === "home" || screen.name === "photo";
   const album = useAlbum(event.id, guestId, albumShown);
   const items = album.items ?? [];
   const opened = screen.name === "photo" ? items.find((item) => item.photoId === screen.photoId) : undefined;
@@ -90,14 +83,14 @@ export function GuestFlow({ event, guestId, token }: Props) {
           guestId={guestId}
           galleryEnabled={event.galleryEnabled}
           galleryVisible={event.galleryVisible}
-          galleryHref={`/e/${token}/galerie`}
+          galleryHref={galleryHref}
           onDone={home}
           onAnother={() => setScreen({ name: "camera" })}
-          onOpenAlbum={openAlbum}
         />
       )}
 
-      {screen.name === "home" && (
+      {/* A photo that vanished meanwhile (removed by the team): back home. */}
+      {(screen.name === "home" || (screen.name === "photo" && !opened)) && (
         <EventHome
           event={event}
           token={token}
@@ -106,12 +99,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
           onTakePhoto={() => setScreen({ name: "camera" })}
           onImportPhoto={chooseFile}
           banner={<PrintBanner items={items} onOpen={openPhoto} />}
-          album={<AlbumEntry items={items} onOpen={openAlbum} />}
         />
-      )}
-
-      {(screen.name === "album" || (screen.name === "photo" && !opened)) && (
-        <AlbumScreen items={items} offline={album.offline} onBack={home} onOpen={openPhoto} />
       )}
 
       {screen.name === "photo" && opened && (
@@ -119,7 +107,8 @@ export function GuestFlow({ event, guestId, token }: Props) {
           key={opened.photoId}
           item={opened}
           eventId={event.id}
-          onBack={openAlbum}
+          backLabel="Accueil"
+          onBack={home}
           onPrinted={album.refresh}
         />
       )}

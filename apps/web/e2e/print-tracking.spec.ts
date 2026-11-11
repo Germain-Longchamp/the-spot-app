@@ -92,6 +92,6 @@ test("après « Imprimer », l'état de la demande et de l'imprimante sont visib
   expect(photo.registers).toHaveLength(1);
 });
 
-// The home list of requests moved to "Mes photos" (SCRUM-47): live updates,
+// The home list of requests moved to "Mes photos" (SCRUM-47), now the home banner and the gallery (SCRUM-63): live updates,
 // problems, each status in plain words, offline printer, lost connection and
 // reload are covered in e2e/my-photos.spec.ts.

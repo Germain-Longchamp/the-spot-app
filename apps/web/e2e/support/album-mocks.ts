@@ -42,6 +42,7 @@ export async function mockAlbum(
     jobs: initial.jobs ?? [],
     fail: false,
     photoQueries: [] as string[],
+    galleryQueries: [] as string[],
     jobQueries: [] as string[],
     created: [] as Record<string, unknown>[],
   };
@@ -57,6 +58,21 @@ export async function mockAlbum(
         thumb_path: null,
         is_published: photo.is_published ?? false,
         created_at: photo.created_at ?? "2026-11-06T13:30:00.000Z",
+      }))
+    );
+  });
+  // The gallery view (SCRUM-63): the guest's photos, marked as theirs.
+  await page.route("**/rest/v1/gallery_photos?**", (route) => {
+    state.galleryQueries.push(route.request().url());
+    if (state.fail) return route.abort("internetdisconnected");
+    return json(
+      route,
+      state.photos.map((photo) => ({
+        id: photo.id,
+        storage_path: pathOf(photo.id),
+        thumb_path: null,
+        is_published: photo.is_published ?? false,
+        is_mine: true,
       }))
     );
   });

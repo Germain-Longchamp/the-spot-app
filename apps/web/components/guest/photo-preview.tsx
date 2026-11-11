@@ -7,7 +7,7 @@ import { Screen } from "@/components/guest/screen";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { CameraIcon, GalleryIcon, ImageIcon, PrinterIcon } from "@/components/ui/icons";
+import { CameraIcon, GalleryIcon, PrinterIcon } from "@/components/ui/icons";
 import { Switch } from "@/components/ui/switch";
 import { sendPhoto } from "@/lib/guest/send-photo";
 import { unavailableMessages } from "@/lib/print/availability";
@@ -28,14 +28,12 @@ interface Props {
   guestId: string;
   galleryEnabled: boolean;
   galleryVisible: boolean;
-  /** Link to the gallery, offered at the end when the photo is in it. */
+  /** Link to the gallery, where the guest finds all their photos (SCRUM-63). */
   galleryHref?: string;
   /** Back to the event home. */
   onDone: () => void;
   /** Straight to the camera, for the next photo. */
   onAnother?: () => void;
-  /** The guest's photos and the state of their prints. */
-  onOpenAlbum?: () => void;
 }
 
 /**
@@ -51,11 +49,11 @@ export function PhotoPreview({
   galleryHref,
   onDone,
   onAnother,
-  onOpenAlbum,
 }: Props) {
   const [url, setUrl] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("review");
-  const [published, setPublished] = useState(false);
+  // Shared by default; the guest can untick it (Germain, 2026-11-11, SCRUM-63).
+  const [published, setPublished] = useState(galleryEnabled);
   const [progress, setProgress] = useState<number | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -212,18 +210,8 @@ export function PhotoPreview({
 
         {url && <Polaroid src={url} small />}
 
-        <div className="flex flex-wrap justify-center gap-x-6">
-          {onOpenAlbum && (
-            <button
-              type="button"
-              onClick={onOpenAlbum}
-              className="inline-flex min-h-11 items-center gap-2 font-semibold text-accent underline"
-            >
-              <ImageIcon size={20} />
-              Voir mes photos
-            </button>
-          )}
-          {inGallery && galleryVisible && galleryHref && (
+        {galleryHref && (
+          <div className="flex justify-center">
             <Link
               href={galleryHref}
               className="inline-flex min-h-11 items-center gap-2 font-semibold text-accent underline"
@@ -231,8 +219,8 @@ export function PhotoPreview({
               <GalleryIcon size={20} />
               Voir la galerie
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </Screen>
     );
   }

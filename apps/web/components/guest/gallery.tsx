@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PhotoDetail, useAlbum } from "@/components/guest/album";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { ArrowLeftIcon } from "@/components/ui/icons";
@@ -17,38 +18,91 @@ import { createClient } from "@/lib/supabase/client";
 interface Props {
   event: GuestEvent;
   token: string;
+  guestId: string;
 }
 
-export function Gallery({ event, token }: Props) {
+/**
+ * The one way to every photo (SCRUM-63): what the other guests shared when
+ * the gallery is open, and all of this guest's own photos, whatever the
+ * gallery state. A guest's own photo opens with its print tracking, or the
+ * way to print it.
+ */
+export function Gallery({ event, token, guestId }: Props) {
   const open = event.galleryEnabled && event.galleryVisible;
+  const closed = event.galleryEnabled && !event.galleryVisible;
+  const album = useAlbum(event.id, guestId, true);
+  const [mineOpened, setMineOpened] = useState<string | null>(null);
+  const detail = mineOpened
+    ? album.items?.find((item) => item.photoId === mineOpened)
+    : undefined;
 
   return (
-    <main className="mx-auto flex min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-4 p-4">
-      <header className="flex items-center justify-between gap-3">
-        <Link
-          href={`/e/${token}`}
-          className="-ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 font-semibold transition-transform active:scale-95"
-        >
-          <ArrowLeftIcon size={22} />
-          Retour à l&apos;accueil
-        </Link>
-        <Logo variant="icon" width={32} />
-      </header>
-      <h1 className="text-2xl font-semibold">Galerie de l&apos;événement</h1>
-
-      {open ? (
-        <GalleryGrid eventId={event.id} />
-      ) : (
-        // Nothing is even asked for: a hidden gallery loads no photo.
-        <p className="text-lg">
-          La galerie sera disponible plus tard. Revenez un peu après !
-        </p>
+    <>
+      {detail && (
+        <PhotoDetail
+          key={detail.photoId}
+          item={detail}
+          eventId={event.id}
+          backLabel="Galerie"
+          onBack={() => setMineOpened(null)}
+          onPrinted={album.refresh}
+        />
       )}
-    </main>
+
+      {/* Kept mounted under the detail: loaded pages and scroll survive. */}
+      <main
+        hidden={Boolean(detail)}
+        className="mx-auto flex min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-4 p-4"
+      >
+        <header className="flex items-center justify-between gap-3">
+          <Link
+            href={`/e/${token}`}
+            className="-ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 font-semibold transition-transform active:scale-95"
+          >
+            <ArrowLeftIcon size={22} />
+            Retour à l&apos;accueil
+          </Link>
+          <Logo variant="icon" width={32} />
+        </header>
+        <h1 className="text-2xl font-semibold">
+          {event.galleryEnabled ? "Galerie de l'événement" : "Vos photos"}
+        </h1>
+
+        {closed && (
+          <p className="text-lg">
+            La galerie sera disponible plus tard. En attendant, vous retrouvez
+            ici vos photos.
+          </p>
+        )}
+
+        <GalleryGrid
+          eventId={event.id}
+          open={open}
+          onOpenMine={(photo) => {
+            // The print state of the guest's photos may not be read yet: the
+            // plain viewer is shown meanwhile.
+            if (album.items?.some((item) => item.photoId === photo.id)) {
+              setMineOpened(photo.id);
+              return true;
+            }
+            return false;
+          }}
+        />
+      </main>
+    </>
   );
 }
 
-function GalleryGrid({ eventId }: { eventId: string }) {
+function GalleryGrid({
+  eventId,
+  open,
+  onOpenMine,
+}: {
+  eventId: string;
+  open: boolean;
+  /** Opens one of the guest's own photos; false if it cannot yet. */
+  onOpenMine: (photo: GalleryPhoto) => boolean;
+}) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [page, setPage] = useState(0);
   const [more, setMore] = useState(false);
@@ -88,8 +142,9 @@ function GalleryGrid({ eventId }: { eventId: string }) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-lg">
-          Aucune photo pour l&apos;instant. Partagez la vôtre depuis
-          l&apos;accueil : elle apparaîtra ici.
+          {open
+            ? "Aucune photo pour l'instant. Partagez la vôtre depuis l'accueil : elle apparaîtra ici."
+            : "Vos photos apparaîtront ici dès que vous en aurez envoyé une."}
         </p>
         <Button variant="secondary" onClick={() => load(0)}>
           Actualiser
@@ -106,12 +161,15 @@ function GalleryGrid({ eventId }: { eventId: string }) {
 
       <ul className="grid grid-cols-3 gap-2">
         {photos.map((photo) => (
-          <li key={photo.id}>
+          <li key={photo.id} className="relative">
             <button
               type="button"
-              onClick={() => setOpened(photo.fullPath)}
+              data-testid="gallery-photo"
+              onClick={() => {
+                if (!(photo.mine && onOpenMine(photo))) setOpened(photo.fullPath);
+              }}
               className="block w-full"
-              aria-label="Agrandir la photo"
+              aria-label={photo.mine ? "Ouvrir votre photo" : "Agrandir la photo"}
             >
               {/* Signed, short-lived links: an image optimizer would cache them. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -123,6 +181,18 @@ function GalleryGrid({ eventId }: { eventId: string }) {
                 className="aspect-square w-full rounded-xl object-cover shadow-card transition-transform active:scale-95"
               />
             </button>
+            {photo.mine && (
+              <span className="pointer-events-none absolute inset-x-1 bottom-1 flex flex-wrap gap-1">
+                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">
+                  Vous
+                </span>
+                {!photo.shared && (
+                  <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-foreground">
+                    Non partagée
+                  </span>
+                )}
+              </span>
+            )}
           </li>
         ))}
       </ul>

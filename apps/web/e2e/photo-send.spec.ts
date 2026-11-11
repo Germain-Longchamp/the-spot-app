@@ -7,6 +7,11 @@ import {
   TEST_EVENT,
 } from "./support/guest-mocks";
 
+/** The photo files sent, without the gallery thumbnails (shared by default, SCRUM-63). */
+const photoFiles = <T extends { path: string }>(uploads: T[]) =>
+  uploads.filter((upload) => !upload.path.endsWith("-thumb.jpg"));
+
+
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
   "base64"
@@ -85,24 +90,33 @@ test.describe("prévisualisation", () => {
   });
 
   /**
-   * Scenario: Galerie non publiée par défaut
-   *   When je valide sans toucher à l'option galerie
-   *   Then ma photo n'est pas ajoutée à la galerie
+   * SCRUM-63 — Scenario: Partagée par défaut
+   *   When j'arrive sur "Votre photo"
+   *   Then la case "Ajouter à la galerie de l'événement" est cochée
    */
-  test("sans choix, la photo n'est pas publiée", async ({ page }) => {
+  test("sans choix, la photo est partagée dans la galerie", async ({ page }) => {
     const calls = await openPreview(page);
 
     await expect(
       page.getByRole("checkbox", { name: "Ajouter à la galerie" })
-    ).not.toBeChecked();
+    ).toBeChecked();
     await validate(page).click();
 
     await expect(
       page.getByRole("button", { name: "Prendre une autre photo" })
     ).toBeVisible();
-    expect(calls.registers[0].p_published).toBe(false);
+    expect(calls.registers[0].p_published).toBe(true);
     expect(calls.prints).toEqual([]);
+  });
+
+  test("case décochée : la photo n'est pas partagée", async ({ page }) => {
+    const calls = await openPreview(page);
+
+    await page.getByRole("checkbox", { name: "Ajouter à la galerie" }).uncheck();
+    await validate(page).click();
+
     await expect(page.getByText("Votre photo est bien envoyée.")).toBeVisible();
+    expect(calls.registers[0].p_published).toBe(false);
   });
 
   test("sans galerie, l'option n'est pas proposée", async ({ page }) => {
@@ -170,7 +184,7 @@ test.describe("envoi", () => {
       "à récupérer près de l'imprimante"
     );
 
-    expect(calls.uploads).toHaveLength(1);
+    expect(photoFiles(calls.uploads)).toHaveLength(1);
     expect(calls.uploads[0].path).toContain(
       `/photos/${TEST_EVENT.id}/${GUEST_ID}/`
     );
@@ -261,7 +275,7 @@ test.describe("envoi", () => {
     await print(page).dblclick();
 
     await expect(page.getByRole("status").first()).toContainText("C'est noté");
-    expect(calls.uploads).toHaveLength(1);
+    expect(photoFiles(calls.uploads)).toHaveLength(1);
     expect(calls.registers).toHaveLength(1);
     expect(calls.prints).toHaveLength(1);
   });
@@ -278,7 +292,7 @@ test.describe("envoi", () => {
     await print(page).click();
 
     await expect(page.getByRole("status").first()).toContainText("C'est noté");
-    expect(calls.uploads).toHaveLength(1);
+    expect(photoFiles(calls.uploads)).toHaveLength(1);
     expect(calls.prints).toHaveLength(1);
   });
 });

@@ -45,7 +45,8 @@ const bannerText: Partial<Record<PrintJobStatus, string>> = {
 };
 
 /**
- * The guest's photos and prints, read again every few seconds. Paused while
+ * The guest's photos and prints, read again every few seconds: the home
+ * banner and the print button of the guest's own photos in the gallery. Paused while
  * the guest takes or reviews a photo; a failed read keeps the last state.
  */
 export function useAlbum(eventId: string, guestId: string, enabled: boolean) {
@@ -142,96 +143,18 @@ export function PrintBanner({
   );
 }
 
-/** On the event home: the way into "Mes photos", hidden until there is one. */
-export function AlbumEntry({
-  items,
-  onOpen,
-}: {
-  items: AlbumItem[];
-  onOpen: () => void;
-}) {
-  if (items.length === 0) return null;
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-surface p-3 text-left shadow-card transition-transform active:scale-[0.98]"
-    >
-      <span aria-hidden="true" className="flex -space-x-3">
-        {items.slice(0, 3).map((item) => (
-          <span key={item.photoId} className="size-11 overflow-hidden rounded-xl border-2 border-surface">
-            <Thumb item={item} className="rounded-none" />
-          </span>
-        ))}
-      </span>
-      <span className="flex-1 font-semibold">Mes photos ({items.length})</span>
-      <ChevronRightIcon size={20} className="text-muted" />
-    </button>
-  );
-}
-
-/** Every photo of the guest, with the state of its print at a glance. */
-export function AlbumScreen({
-  items,
-  offline,
-  onBack,
-  onOpen,
-}: {
-  items: AlbumItem[];
-  offline: boolean;
-  onBack: () => void;
-  onOpen: (photoId: string) => void;
-}) {
-  return (
-    <Screen stepKey="album" back={{ label: "Accueil", onClick: onBack }} title="Mes photos">
-      {items.length === 0 ? (
-        <p className="text-muted">
-          Vos photos apparaîtront ici dès que vous en aurez envoyé une.
-        </p>
-      ) : (
-        <ul className="grid grid-cols-2 gap-3">
-          {items.map((item) => (
-            <li key={item.photoId}>
-              <button
-                type="button"
-                data-testid="album-item"
-                onClick={() => onOpen(item.photoId)}
-                className="flex w-full flex-col gap-2 rounded-2xl bg-surface p-2 text-left shadow-card transition-transform active:scale-[0.97]"
-              >
-                <Thumb item={item} />
-                <span className="flex flex-wrap gap-1">
-                  <StatusBadge item={item} />
-                  {item.published && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
-                      <GalleryIcon size={12} />
-                      Dans la galerie
-                    </span>
-                  )}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {offline && (
-        <p className="text-sm text-muted">
-          Connexion perdue : voici le dernier état connu. La page se mettra à
-          jour toute seule dès le retour du réseau.
-        </p>
-      )}
-    </Screen>
-  );
-}
-
 /** One photo: large, with its print tracking, or the way to print it. */
 export function PhotoDetail({
   item,
   eventId,
+  backLabel,
   onBack,
   onPrinted,
 }: {
   item: AlbumItem;
   eventId: string;
+  /** Where "back" goes: the home (print banner) or the gallery. */
+  backLabel: string;
   onBack: () => void;
   /** Reload the album, so the new request shows up at once. */
   onPrinted: () => void;
@@ -272,7 +195,7 @@ export function PhotoDetail({
   return (
     <Screen
       stepKey={`photo-${item.photoId}`}
-      back={{ label: "Mes photos", onClick: onBack }}
+      back={{ label: backLabel, onClick: onBack }}
       title="Votre photo"
       footer={
         printable ? (
