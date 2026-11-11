@@ -8,7 +8,13 @@ import { GALLERY_POLL_INTERVAL_MS } from "../lib/guest/gallery";
 const GALLERY = "/e/jeton-de-test/galerie";
 const POLL = GALLERY_POLL_INTERVAL_MS;
 
-test.use({ viewport: { width: 390, height: 844 } });
+test.use({
+  viewport: { width: 390, height: 844 },
+  // Chrome's fake camera, for the "Prendre une photo" button (none on CI).
+  launchOptions: {
+    args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+  },
+});
 
 const thumbs = (page: Page) => page.getByTestId("gallery-photo");
 const pill = (page: Page) => page.getByRole("button", { name: /nouvelles? photos?$/ });
