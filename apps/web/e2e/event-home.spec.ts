@@ -23,22 +23,57 @@ test("accueil nominal", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("les deux actions sont visibles sans défiler, à la même taille", async ({
-  page,
-}) => {
+/**
+ * SCRUM-57 — Scenario: Hiérarchie des actions
+ *   Then "Prendre une photo" est le bouton principal et "Importer une photo" le bouton secondaire
+ *   And les deux sont visibles sans défilement sur un téléphone de 320 x 568
+ */
+test("action principale et secondaire, visibles sans défiler sur 320 x 568", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
-  await mockGuestBackend(page);
+  await mockGuestBackend(page, { event: { event_date: "2027-01-21" } });
   await page.goto(URL);
 
   const take = page.getByRole("button", { name: "Prendre une photo" });
   const load = page.getByRole("button", { name: "Importer une photo" });
+  await expect(take).toHaveAttribute("data-variant", "primary");
+  await expect(load).toHaveAttribute("data-variant", "secondary");
+  await expect(take).toContainText("Avec l'appareil de votre téléphone");
+  await expect(load).toContainText("Depuis vos photos");
   await expect(take).toBeInViewport({ ratio: 1 });
   await expect(load).toBeInViewport({ ratio: 1 });
+});
 
-  const [a, b] = [await take.boundingBox(), await load.boundingBox()];
-  // Same size to the pixel; browsers round sub-pixels differently.
-  expect(a!.width).toBeCloseTo(b!.width, 0);
-  expect(a!.height).toBeCloseTo(b!.height, 0);
+/**
+ * SCRUM-57 — Scenario: Plus de "Comment ça marche" ni de "Mes photos"
+ */
+test("ni « Comment ça marche » ni « Mes photos »", async ({ page }) => {
+  await mockGuestBackend(page);
+  await page.goto(URL);
+  await expect(page.getByRole("button", { name: "Prendre une photo" })).toBeVisible();
+
+  await expect(page.getByText("Comment ça marche")).toHaveCount(0);
+  await expect(page.getByText("Mes photos")).toHaveCount(0);
+});
+
+/** SCRUM-57 — la date de l'événement en surtitre. */
+test("surtitre : la date de l'événement", async ({ page }) => {
+  await mockGuestBackend(page, { event: { event_date: "2027-01-21" } });
+  await page.goto(URL);
+
+  await expect(page.getByTestId("event-date")).toHaveText("21 janvier 2027");
+});
+
+/**
+ * SCRUM-57 — Scenario: Date absente
+ *   Given l'événement n'a pas de date
+ *   Then aucun surtitre n'est affiché
+ */
+test("date absente : aucun surtitre", async ({ page }) => {
+  await mockGuestBackend(page);
+  await page.goto(URL);
+  await expect(page.getByRole("heading", { name: "Salon de démonstration" })).toBeVisible();
+
+  await expect(page.getByTestId("event-date")).toHaveCount(0);
 });
 
 /**
@@ -51,7 +86,7 @@ test("galerie masquée : le lien reste, pour retrouver ses photos", async ({ pag
   await page.goto(URL);
 
   await expect(
-    page.getByRole("link", { name: "Galerie de l'événement" })
+    page.getByRole("link", { name: /Voir la galerie/ })
   ).toBeVisible();
 });
 
@@ -60,7 +95,7 @@ test("événement sans galerie : le lien s'appelle « Vos photos »", async ({ p
   await page.goto(URL);
 
   await expect(page.getByRole("link", { name: "Vos photos" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Galerie de l'événement" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Voir la galerie/ })).toHaveCount(0);
 });
 
 test("galerie visible : le lien apparaît", async ({ page }) => {
@@ -68,7 +103,7 @@ test("galerie visible : le lien apparaît", async ({ page }) => {
   await page.goto(URL);
 
   await expect(
-    page.getByRole("link", { name: "Galerie de l'événement" })
+    page.getByRole("link", { name: /Voir la galerie/ })
   ).toBeVisible();
 });
 

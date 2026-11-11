@@ -92,7 +92,7 @@ test("après un rechargement, même identité et mêmes photos", async ({
   await page.reload();
 
   // Since SCRUM-63 the guest's photos are in the gallery.
-  await page.getByRole("link", { name: "Galerie de l'événement" }).click();
+  await page.getByRole("link", { name: /Voir la galerie/ }).click();
   await expect(page.getByRole("button", { name: "Ouvrir votre photo" })).toHaveCount(2);
   expect(calls.signups).toBe(signups);
 });

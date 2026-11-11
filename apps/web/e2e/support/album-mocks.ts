@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import type { PrintJobStatus } from "../../lib/print/job-status";
-import { GUEST_ID, json, TEST_EVENT } from "./guest-mocks";
+import { cors, GUEST_ID, json, TEST_EVENT } from "./guest-mocks";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -72,8 +72,22 @@ export async function mockAlbum(
   });
   // The gallery view (SCRUM-63): the guest's photos, marked as theirs.
   await page.route("**/rest/v1/gallery_photos?**", (route) => {
-    state.galleryQueries.push(route.request().url());
+    const url = route.request().url();
+    state.galleryQueries.push(url);
     if (state.fail) return route.abort("internetdisconnected");
+    // The home's counter (SCRUM-57): a count only, in the Content-Range header.
+    if (route.request().method() === "HEAD") {
+      const shared = url.includes("is_published=eq.true");
+      const n = state.photos.filter((photo) => !shared || photo.is_published).length;
+      return route.fulfill({
+        status: 200,
+        headers: {
+          ...cors,
+          "access-control-expose-headers": "content-range",
+          "content-range": `*/${n}`,
+        },
+      });
+    }
     return json(
       route,
       state.photos.map((photo) => ({

@@ -64,6 +64,18 @@ test("un invité rejoint l'événement de son token", async () => {
   expect(outcome.guest_id).toBeTruthy();
 });
 
+/** SCRUM-57 : la date de l'événement, pour le surtitre de l'accueil. */
+test("rejoindre renvoie la date de l'événement, ou rien", async () => {
+  const f = await db.seed();
+  const user = await newUser();
+  const token = await tokenOf(f.eventId);
+  expect((await join(user, token)).event.event_date).toBeNull();
+
+  await db.admin.query("update public.events set event_date = '2027-01-21' where id = $1", [f.eventId]);
+
+  expect((await join(user, token)).event.event_date).toBe("2027-01-21");
+});
+
 /** Cas limite : double scan, une seule session créée. */
 test("rejoindre deux fois donne le même invité", async () => {
   const f = await db.seed();

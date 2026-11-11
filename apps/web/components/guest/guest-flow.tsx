@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera } from "@/components/guest/camera";
 import { PhotoDetail, PrintBanner, useAlbum } from "@/components/guest/album";
 import { EventHome } from "@/components/guest/event-home";
 import { PhotoPreview } from "@/components/guest/photo-preview";
 import { Prints } from "@/components/guest/prints";
 import type { GuestEvent } from "@/lib/guest/enter-event";
+import { countGalleryPhotos } from "@/lib/guest/gallery";
 import { importPhoto } from "@/lib/guest/import-photo";
+import { createClient } from "@/lib/supabase/client";
 
 type Screen =
   | { name: "home" }
@@ -39,6 +41,21 @@ export function GuestFlow({ event, guestId, token }: Props) {
   const album = useAlbum(event.id, guestId, albumShown);
   const items = album.items ?? [];
   const opened = screen.name === "photo" ? items.find((item) => item.photoId === screen.photoId) : undefined;
+
+  // The number under the gallery entry, read again each time the home shows.
+  const [galleryCount, setGalleryCount] = useState<number | null>(null);
+  const onHome = screen.name === "home";
+  useEffect(() => {
+    if (!onHome) return;
+    let active = true;
+    const scope = event.galleryEnabled && event.galleryVisible ? "shared" : "mine";
+    countGalleryPhotos(createClient(), event.id, scope).then(
+      (count) => active && count !== null && setGalleryCount(count)
+    );
+    return () => {
+      active = false;
+    };
+  }, [onHome, event.id, event.galleryEnabled, event.galleryVisible]);
 
   function chooseFile() {
     setImportError(null);
@@ -102,6 +119,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
           onTakePhoto={() => setScreen({ name: "camera" })}
           onImportPhoto={chooseFile}
           banner={<PrintBanner items={items} onOpen={openPrints} />}
+          galleryCount={galleryCount}
         />
       )}
 
