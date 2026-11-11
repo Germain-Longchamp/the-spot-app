@@ -10,16 +10,23 @@ export function Switch({
   checked,
   disabled,
   onChange,
+  bare = false,
 }: {
   label: string;
   hint?: string;
   checked: boolean;
   disabled?: boolean;
   onChange: (checked: boolean) => void;
+  /** Without its card, inside a bar that already has a background. */
+  bare?: boolean;
 }) {
   return (
-    <label className="flex min-h-[52px] cursor-pointer items-center justify-between gap-4 rounded-2xl bg-surface p-4 shadow-card">
-      <span className="flex flex-col">
+    <label
+      className={`flex min-h-[52px] cursor-pointer items-center justify-between gap-4 ${
+        bare ? "" : "rounded-2xl bg-surface p-4 shadow-card"
+      }`}
+    >
+      <span className="flex min-w-0 flex-col">
         <span className="font-semibold">{label}</span>
         {hint && <span className="text-sm text-muted">{hint}</span>}
       </span>

@@ -237,13 +237,42 @@ export function PhotoPreview({
     );
   }
 
+  // Everything the guest needs to decide sits in the bar, next to the
+  // buttons: never under the fold (UX rule 1, SCRUM-52).
   return (
     <Screen
       stepKey="review"
+      fit
       back={{ label: "Reprendre", onClick: onDone }}
       title="Votre photo"
       footer={
         <>
+          <PrinterStatus eventId={eventId} />
+
+          {(unavailable || refusal) && (
+            <p
+              role="status"
+              className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-on-brand"
+            >
+              {refusal ?? unavailable}
+            </p>
+          )}
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+
+          {galleryEnabled && (
+            <Switch
+              bare
+              label="Ajouter à la galerie de l'événement"
+              hint={
+                galleryVisible
+                  ? "Les autres invités pourront la voir."
+                  : "Elle sera visible à l'ouverture de la galerie."
+              }
+              checked={published}
+              onChange={setPublished}
+            />
+          )}
+
           <Button
             icon={<PrinterIcon size={20} />}
             onClick={printPhoto}
@@ -257,43 +286,45 @@ export function PhotoPreview({
         </>
       }
     >
-      {url && <Polaroid src={url} />}
-
-      <PrinterStatus eventId={eventId} />
-
-      {(unavailable || refusal) && (
-        <p role="status" className="rounded-2xl bg-brand-soft p-4 text-on-brand">
-          {refusal ?? unavailable}
-        </p>
-      )}
-
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-
-      {galleryEnabled && (
-        <Switch
-          label="Ajouter à la galerie de l'événement"
-          hint={
-            galleryVisible
-              ? "Les autres invités pourront la voir."
-              : "Elle sera visible à l'ouverture de la galerie."
-          }
-          checked={published}
-          onChange={setPublished}
-        />
-      )}
+      {url && <Polaroid src={url} fit />}
     </Screen>
   );
 }
 
-/** The photo, framed like a print: what the guest is about to get. */
-function Polaroid({ src, small = false }: { src: string; small?: boolean }) {
+/**
+ * The photo, framed like a print: what the guest is about to get. With fit,
+ * it takes the room left by the bar and shrinks to it, never cropped.
+ */
+function Polaroid({
+  src,
+  small = false,
+  fit = false,
+}: {
+  src: string;
+  small?: boolean;
+  fit?: boolean;
+}) {
+  if (fit) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        {/* The frame is the image's own padding: it hugs the photo whatever
+            its shape. A local blob: nothing for an image optimizer to do. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt="Votre photo"
+          className="max-h-full max-w-full rounded-2xl bg-surface object-contain p-2 pb-5 shadow-lift"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`mx-auto w-full rounded-2xl bg-surface p-3 pb-8 shadow-lift ${
         small ? "max-w-44" : "max-w-sm"
       }`}
     >
-      {/* A local blob: there is nothing for an image optimizer to do. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}

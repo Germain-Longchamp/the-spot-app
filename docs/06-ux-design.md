@@ -35,7 +35,7 @@ Un écran par étape, une action principale par écran :
 
 1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis la carte « Mes photos (n) » et le lien vers la galerie. Un bandeau en haut signale une impression en attente, en cours, prête ou en souci (SCRUM-47).
 2. **Caméra** : plein écran, déclencheur rond, fermeture (croix) et bascule de caméra en icônes, éclair blanc à la prise.
-3. **Aperçu** (« Votre photo ») : photo encadrée comme un tirage, état de l'imprimante, interrupteur « Ajouter à la galerie », barre d'actions fixée en bas (« Imprimer », « Valider sans imprimer »), « Reprendre » toujours visible en haut.
+3. **Aperçu** (« Votre photo ») : écran d'une hauteur exacte, sans défilement (SCRUM-52). En haut « Reprendre » ; au milieu la photo encadrée comme un tirage, qui rétrécit pour laisser la place, jamais recadrée ; en bas une barre qui regroupe tout ce qui sert à décider : état de l'imprimante, motif si l'impression est impossible, interrupteur « Ajouter à la galerie », « Imprimer », « Valider sans imprimer ».
 4. **Envoi** : anneau de progression, message rassurant ; jamais de retour possible pendant l'envoi.
 5. **Confirmation** : coche animée, message, état de l'imprimante et suivi en étapes (envoyée, validation, impression, prête), puis « Prendre une autre photo » (ouvre la caméra) et « Retour à l'accueil » fixés en bas.
 

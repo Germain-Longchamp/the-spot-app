@@ -1,3 +1,4 @@
+import { crc32, deflateSync } from "node:zlib";
 import { test, expect, Locator, Page } from "@playwright/test";
 import { json, mockGuestBackend, mockPhotoBackend, TEST_EVENT } from "./support/guest-mocks";
 
@@ -7,12 +8,41 @@ const PNG = Buffer.from(
   "base64"
 );
 
+/** A tall photo (600 x 1200), as taken with a phone held upright. */
+const PORTRAIT = (() => {
+  const [w, h] = [600, 1200];
+  const chunk = (type: string, data: Buffer) => {
+    const out = Buffer.alloc(12 + data.length);
+    out.writeUInt32BE(data.length, 0);
+    out.write(type, 4, "ascii");
+    data.copy(out, 8);
+    out.writeUInt32BE(crc32(out.subarray(4, 8 + data.length)) >>> 0, 8 + data.length);
+    return out;
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr.set([8, 2, 0, 0, 0], 8);
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(w * 3, 0x88)]);
+  const raw = Buffer.concat(Array.from({ length: h }, () => row));
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(raw)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+})();
+
 test.use({ viewport: { width: 390, height: 844 } });
 
-async function openHome(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
+async function openHome(
+  page: Page,
+  event: Partial<typeof TEST_EVENT> = {},
+  photoBackend: Parameters<typeof mockPhotoBackend>[1] = {}
+) {
   await mockGuestBackend(page, { event: { gallery_enabled: true, gallery_visible: true, ...event } });
   await page.route("**/rest/v1/photos?**", (route) => json(route, []));
-  const backend = await mockPhotoBackend(page);
+  const backend = await mockPhotoBackend(page, photoBackend);
   // The tracking follows the request created in this test.
   await page.route("**/rest/v1/print_jobs?**", (route) =>
     json(
@@ -34,11 +64,16 @@ async function openHome(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
   return backend;
 }
 
-async function openReview(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
-  const backend = await openHome(page, event);
+async function openReview(
+  page: Page,
+  event: Partial<typeof TEST_EVENT> = {},
+  image: Buffer = PNG,
+  photoBackend: Parameters<typeof mockPhotoBackend>[1] = {}
+) {
+  const backend = await openHome(page, event, photoBackend);
   await page
     .getByLabel("Choisir une photo")
-    .setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+    .setInputFiles({ name: "p.png", mimeType: "image/png", buffer: image });
   await expect(page.getByRole("img", { name: "Votre photo" })).toBeVisible();
   return backend;
 }
@@ -251,23 +286,93 @@ test("sans réglage particulier, les écrans arrivent en douceur", async ({ page
   expect(name).toContain("screen-in");
 });
 
-test("petit écran 320 x 568 : la barre du bas ne masque ni la photo ni les retours", async ({
+/**
+ * SCRUM-52 — Scenario: Tout est visible sur un petit téléphone
+ *   Given un téléphone de 320 x 568 et une photo en portrait
+ *   When j'arrive sur "Votre photo"
+ *   Then je vois sans faire défiler l'état de l'imprimante, l'interrupteur
+ *   "Ajouter à la galerie", "Imprimer" et "Valider sans imprimer"
+ * Scenario: Photo entière
+ *   Then la photo est affichée en entier, sans recadrage
+ */
+for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+]) {
+  test(`${viewport.width} x ${viewport.height} : tout ce qui sert à décider est visible sans défiler`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await openReview(page, {}, PORTRAIT);
+
+    const photo = page.getByRole("img", { name: "Votre photo" });
+    for (const locator of [
+      page.getByRole("button", { name: "Reprendre" }),
+      photo,
+      page.getByTestId("printer-status"),
+      page.getByText("Ajouter à la galerie de l'événement"),
+      page.getByRole("checkbox", { name: "Ajouter à la galerie" }),
+      page.getByRole("button", { name: "Imprimer", exact: true }),
+      page.getByRole("button", { name: "Valider sans imprimer" }),
+    ]) {
+      await inView(page, locator);
+    }
+
+    const scrolls = await page.evaluate(
+      () => document.documentElement.scrollHeight > window.innerHeight + 1
+    );
+    expect(scrolls).toBe(false);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(overflow).toBe(false);
+
+    // Whole photo: shown at its own proportions, never cropped.
+    expect(await photo.evaluate((img) => getComputedStyle(img).objectFit)).toBe("contain");
+    const box = (await photo.boundingBox())!;
+    expect(box.height).toBeGreaterThan(80);
+  });
+}
+
+/**
+ * SCRUM-52 — Scenario: Imprimante déconnectée
+ *   Then le message "L'imprimante n'est pas connectée pour le moment" est
+ *   visible au-dessus de "Imprimer"
+ */
+test("imprimante déconnectée : le message est au-dessus de « Imprimer »", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openReview(page, {}, PNG, { printerOnline: false });
+
+  const status = page.getByText("L'imprimante n'est pas connectée pour le moment");
+  const print = page.getByRole("button", { name: "Imprimer", exact: true });
+  await expect(status).toBeVisible();
+  await inView(page, status);
+  expect((await status.boundingBox())!.y).toBeLessThan((await print.boundingBox())!.y);
+});
+
+/**
+ * SCRUM-52 — Scenario: Impression indisponible
+ *   Given les impressions sont en pause
+ *   Then le motif est visible au-dessus de "Imprimer", qui est désactivé
+ */
+test("impressions en pause : motif visible au-dessus de « Imprimer », désactivé", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 568 });
-  await openReview(page);
+  await openReview(page, {}, PNG, { availability: "paused" });
 
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
-  expect(overflow).toBe(false);
-  await inView(page, page.getByRole("button", { name: "Reprendre" }));
-  await inView(page, page.getByRole("button", { name: "Imprimer", exact: true }));
+  const print = page.getByRole("button", { name: "Imprimer", exact: true });
+  const reason = page.getByRole("status").filter({ hasText: /pause/i });
+  await expect(print).toBeDisabled();
+  await inView(page, reason);
+  expect((await reason.boundingBox())!.y).toBeLessThan((await print.boundingBox())!.y);
+});
 
-  // Scrolled to the end, the content ends above the action bar.
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await expect
-    .poll(() => page.evaluate(() => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1))
-    .toBe(true);
-  const bar = await page.getByRole("button", { name: "Imprimer", exact: true }).boundingBox();
-  const lastContent = await page.getByText("Ajouter à la galerie de l'événement").boundingBox();
-  expect(lastContent!.y + lastContent!.height).toBeLessThanOrEqual(bar!.y);
+/**
+ * SCRUM-52 — Scenario: Galerie désactivée
+ *   Then aucun interrupteur galerie n'est affiché
+ */
+test("galerie désactivée : pas d'interrupteur", async ({ page }) => {
+  await openReview(page, { gallery_enabled: false, gallery_visible: false });
+
+  await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Imprimer", exact: true })).toBeVisible();
 });
