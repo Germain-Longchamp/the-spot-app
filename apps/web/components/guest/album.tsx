@@ -13,7 +13,7 @@ import {
   ImageIcon,
   PrinterIcon,
 } from "@/components/ui/icons";
-import { AlbumItem, canPrint, isActive, loadAlbum } from "@/lib/guest/album";
+import { AlbumItem, canPrint, isActive, loadAlbum, queueText } from "@/lib/guest/album";
 import { signFullImage } from "@/lib/guest/gallery";
 import { unavailableMessages } from "@/lib/print/availability";
 import type { PrintJobStatus } from "@/lib/print/job-status";
@@ -106,24 +106,31 @@ function Thumb({ item, className = "" }: { item: AlbumItem; className?: string }
   );
 }
 
-/** On the event home: the one request the guest should hear about now. */
+/**
+ * On the event home: the one request the guest should hear about now. A tap
+ * opens "Vos tirages" (SCRUM-53), where every print shows.
+ */
 export function PrintBanner({
   items,
   onOpen,
 }: {
   items: AlbumItem[];
-  onOpen: (photoId: string) => void;
+  onOpen: () => void;
 }) {
   const active = items.find((item) => isActive(item));
   if (!active?.print) return null;
   const status = active.print.status;
   const problem = status === "STUCK" || status === "FAILED";
+  const text =
+    status === "PENDING" && active.print.ahead !== null
+      ? `Votre impression est dans la file : ${queueText(active.print.ahead).toLowerCase()}.`
+      : bannerText[status];
 
   return (
     <button
       type="button"
       data-testid="print-banner"
-      onClick={() => onOpen(active.photoId)}
+      onClick={onOpen}
       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left shadow-card transition-transform active:scale-[0.98] ${
         status === "DONE"
           ? "bg-success text-surface"
@@ -136,7 +143,7 @@ export function PrintBanner({
         <Thumb item={active} className="rounded-none" />
       </span>
       <span role="status" aria-live="polite" className="flex-1 font-semibold">
-        {bannerText[status]}
+        {text}
       </span>
       {status === "DONE" ? <CheckIcon size={22} /> : <ChevronRightIcon size={22} />}
     </button>

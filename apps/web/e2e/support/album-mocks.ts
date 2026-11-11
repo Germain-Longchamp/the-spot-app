@@ -35,7 +35,14 @@ const pathOf = (id: string) => `${TEST_EVENT.id}/${GUEST_ID}/${id}.jpg`;
  */
 export async function mockAlbum(
   page: Page,
-  initial: { photos?: FakePhoto[]; jobs?: FakeJob[]; printerOnline?: boolean } = {}
+  initial: {
+    photos?: FakePhoto[];
+    jobs?: FakeJob[];
+    printerOnline?: boolean;
+    /** Waiting requests before each photo's own, by photo id (SCRUM-53). */
+    ahead?: Record<string, number>;
+    availability?: string;
+  } = {}
 ) {
   const state = {
     photos: initial.photos ?? [],
@@ -45,6 +52,8 @@ export async function mockAlbum(
     galleryQueries: [] as string[],
     jobQueries: [] as string[],
     created: [] as Record<string, unknown>[],
+    ahead: initial.ahead ?? ({} as Record<string, number>),
+    positionQueries: 0,
   };
 
   await page.route("**/rest/v1/photos?**", (route) => {
@@ -94,7 +103,20 @@ export async function mockAlbum(
   await page.route("**/rest/v1/rpc/get_printer_status", (route) =>
     json(route, initial.printerOnline ?? true)
   );
-  await page.route("**/rest/v1/rpc/get_print_availability", (route) => json(route, "available"));
+  await page.route("**/rest/v1/rpc/get_print_availability", (route) =>
+    json(route, initial.availability ?? "available")
+  );
+  // The place in the queue: only the guest's waiting requests, as numbers.
+  await page.route("**/rest/v1/rpc/guest_queue_positions", (route) => {
+    state.positionQueries += 1;
+    if (state.fail) return route.abort("internetdisconnected");
+    return json(
+      route,
+      state.jobs
+        .filter((job) => job.status === "PENDING" && job.photo_id in state.ahead)
+        .map((job) => ({ photo_id: job.photo_id, ahead: state.ahead[job.photo_id] }))
+    );
+  });
   await page.route("**/rest/v1/rpc/create_print_job", (route) => {
     const body = route.request().postDataJSON() as Record<string, unknown>;
     state.created.push(body);

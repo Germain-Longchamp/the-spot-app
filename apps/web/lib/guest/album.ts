@@ -9,7 +9,17 @@ export interface AlbumItem {
   published: boolean;
   createdAt: string;
   /** The latest print request for this photo, if any. */
-  print: { status: PrintJobStatus; createdAt: string } | null;
+  print: AlbumPrint | null;
+}
+
+export interface AlbumPrint {
+  status: PrintJobStatus;
+  createdAt: string;
+  /**
+   * Waiting requests of the event before this one (SCRUM-53), for a request
+   * still waiting; null otherwise, or when the count could not be read.
+   */
+  ahead: number | null;
 }
 
 /** Long enough to browse, short enough to be useless if copied. */
@@ -31,6 +41,41 @@ const rank = (item: AlbumItem): number => {
       return 4;
   }
 };
+
+/** "2 photos avant la vôtre", or "C'est la prochaine" (UX rule 2). */
+export function queueText(ahead: number): string {
+  if (ahead <= 0) return "C'est la prochaine";
+  return ahead === 1 ? "1 photo avant la vôtre" : `${ahead} photos avant la vôtre`;
+}
+
+/** "1 prêt · 2 en attente": what the guest's prints are doing, in one line. */
+export function printsSummary(items: AlbumItem[]): string {
+  const count = (statuses: PrintJobStatus[]) =>
+    items.filter((item) => item.print && statuses.includes(item.print.status)).length;
+  const ready = count(["DONE"]);
+  const problems = count(["STUCK", "FAILED"]);
+  const printing = count(["PRINTING"]);
+  const waiting = count(["PENDING"]);
+  return [
+    ready && `${ready} ${ready > 1 ? "prêts" : "prêt"}`,
+    problems && `${problems} ${problems > 1 ? "soucis" : "souci"}`,
+    printing && `${printing} en cours`,
+    waiting && `${waiting} en attente`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** The prints page order: ready, problem, printing, then the queue in its order. */
+export function sortPrints(items: AlbumItem[]): AlbumItem[] {
+  return [...items].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (a.print?.status === "PENDING"
+        ? a.print.createdAt.localeCompare(b.print!.createdAt)
+        : b.print!.createdAt.localeCompare(a.print!.createdAt))
+  );
+}
 
 export function sortAlbum(items: AlbumItem[]): AlbumItem[] {
   return [...items].sort(
@@ -84,10 +129,24 @@ export async function loadAlbum(
     if (photos.error || prints.error) return null;
 
     // Newest first, so the first request seen for a photo is its latest.
-    const latest = new Map<string, { status: PrintJobStatus; createdAt: string }>();
+    const latest = new Map<string, AlbumPrint>();
     for (const job of prints.data) {
       if (!latest.has(job.photo_id)) {
-        latest.set(job.photo_id, { status: job.status, createdAt: job.created_at });
+        latest.set(job.photo_id, { status: job.status, createdAt: job.created_at, ahead: null });
+      }
+    }
+
+    // The place in the queue, only when something waits. Unread, the cards
+    // fall back to "waiting for the team": never a reason to lose the album.
+    if (Array.from(latest.values()).some((print) => print.status === "PENDING")) {
+      const { data, error } = await supabase.rpc("guest_queue_positions", {
+        p_event_id: eventId,
+      });
+      if (!error && Array.isArray(data)) {
+        for (const row of data as { photo_id: string; ahead: number }[]) {
+          const print = latest.get(row.photo_id);
+          if (print?.status === "PENDING") print.ahead = row.ahead;
+        }
       }
     }
 

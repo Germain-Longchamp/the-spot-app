@@ -103,3 +103,12 @@ Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/a
 - **Galerie** : galerie ouverte, toutes les photos partagées et toutes celles de l'invité ; galerie fermée, seulement les siennes, avec « La galerie sera disponible plus tard » ; événement sans galerie, l'entrée s'appelle « Vos photos ». Les photos de l'invité portent la pastille « Vous », et « Non partagée » si elles ne sont visibles que de lui. Données : vue `gallery_photos` (RLS des photos, `is_mine` sans exposer l'auteur).
 - **Ses propres photos** : un appui ouvre le détail, avec l'état de l'imprimante et le suivi en étapes. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression. Les photos des autres s'ouvrent en grand.
 - **Accueil** : le bandeau d'impression (SCRUM-47) reste en haut et ouvre la photo concernée ; il sera remplacé par la page « Vos tirages » (SCRUM-53). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.
+
+## Vos tirages (SCRUM-53)
+
+- Le bandeau de l'accueil ouvre la page « Vos tirages » ; une carte par tirage récent ouvre la photo en grand (retour « Vos tirages »).
+- Ordre : prête, souci, en cours, puis la file dans son ordre d'arrivée. Résumé en tête (« 1 prêt · 2 en attente »).
+- Position en langage humain : « 2 photos avant la vôtre », « C'est la prochaine ». Elle compte les demandes de l'événement en attente arrivées avant, validées ou non, comme la file numérotée du panneau opérateur. Le bandeau la reprend.
+- Calculée par `guest_queue_positions` (security definer) : l'invité n'obtient que des nombres pour ses propres demandes.
+- Position illisible : « En attente de validation par l'équipe ». Réseau coupé : dernier état connu, « Mise à jour impossible pour le moment ». Impressions en pause : « Les impressions reprennent bientôt » (hypothèse à confirmer).
+- Pas de temps d'attente estimé en v1. La maquette d'Alison affiche aussi un grand rang (« 3e dans la file ») : non repris, la phrase dit la même chose.
