@@ -17,6 +17,10 @@ export interface GalleryItem {
 
 export interface PanelSnapshot {
   eventName: string;
+  /** Path of the guests' access link, "/e/<token>": the QR code points there. */
+  accessPath: string;
+  /** Fallback code printed under the QR code. */
+  shortCode: string;
   printLimit: number | null;
   paused: boolean;
   eventOpen: boolean;
@@ -102,7 +106,7 @@ export async function loadSnapshot(
     client
       .from("events")
       .select(
-        "name, print_limit, printing_paused, status, gallery_enabled, gallery_visible",
+        "name, access_token, short_code, print_limit, printing_paused, status, gallery_enabled, gallery_visible",
       )
       .eq("id", eventId)
       .single(),
@@ -144,6 +148,8 @@ export async function loadSnapshot(
 
   return {
     eventName: event.data.name,
+    accessPath: `/e/${event.data.access_token}`,
+    shortCode: event.data.short_code,
     printLimit: event.data.print_limit,
     paused: event.data.printing_paused,
     eventOpen: event.data.status === "open",

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GuestAccess } from "@/components/operator/guest-access";
 import type { OperatorAction } from "@/lib/operator/actions";
 import type { PanelSnapshot } from "@/lib/operator/panel";
 
@@ -12,7 +13,7 @@ interface Props {
   onAction: (action: OperatorAction) => void;
 }
 
-/** What is set once or twice a day: gallery access, print limit, closing. */
+/** What is set once or twice a day: guests' access, gallery, print limit, closing. */
 export function EventSettings({ snapshot, disabled, onAction }: Props) {
   const [limit, setLimit] = useState(
     snapshot.printLimit === null ? "" : String(snapshot.printLimit),
@@ -44,6 +45,12 @@ export function EventSettings({ snapshot, disabled, onAction }: Props) {
       <h2 id="settings-title" className="text-lg font-semibold">
         Paramètres
       </h2>
+
+      <GuestAccess
+        accessPath={snapshot.accessPath}
+        shortCode={snapshot.shortCode}
+        eventOpen={snapshot.eventOpen}
+      />
 
       <Card className="flex flex-col gap-3">
         <h3 className="font-semibold">Accès à la galerie</h3>
