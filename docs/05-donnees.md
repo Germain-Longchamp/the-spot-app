@@ -63,6 +63,9 @@ Historique des transitions : `job_id`, `from_status`, `to_status`, `actor` (invi
 ### `operator_actions`
 Journal des actions sensibles : suppression de photo, purge, lancement ou annulation de job, changement de réglage. Colonnes : `event_id`, `action`, `target_id`, `created_at`. Ne contient aucune photo ni donnée personnelle.
 
+### `admin_actions` (SCRUM-49)
+Trace de l'espace admin : `event_id`, `action` (`create_event`, `reset_operator_link`), `admin_user_id` (compte Supabase, jamais l'email), `created_at`. Aucun accès client. `events.creation_key` rend la création idempotente (double appui, nouvel essai).
+
 ## Règles d'accès (RLS)
 
 À écrire dans la même migration que chaque table. Principe :
@@ -70,6 +73,7 @@ Journal des actions sensibles : suppression de photo, purge, lancement ou annula
 | Acteur | Droits |
 |---|---|
 | Invité (session anonyme) | Lit l'événement de son token ; crée et lit **ses propres** photos et jobs ; lit les photos **publiées** de son événement si la galerie est visible ; aucun accès aux autres événements |
+| Admin (compte email dont l'adresse confirmée est dans `ADMIN_EMAILS`) | Liste et crée les événements, remplace un lien opérateur, via le serveur seulement (`admin_create_event`, `admin_reset_operator_link`, réservées au rôle service) |
 | Opérateur | Lit et agit sur son événement : jobs, photos, réglages, export, suppression |
 | Agent | Lit les jobs autorisés de son événement, met à jour leur statut, écrit son heartbeat ; ne lit jamais d'autres événements |
 | Anonyme sans token | Aucun accès |
