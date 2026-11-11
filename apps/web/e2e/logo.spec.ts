@@ -42,6 +42,8 @@ const logo = (page: Page) => page.getByRole("img", { name: NAME });
  *   Then le logo complet en version couleur est affiché (thème clair, SCRUM-46)
  *   And il mesure au moins 200 px de large
  *   And ses proportions sont celles du fichier fourni
+ * SCRUM-51 — Scenario: Logo plus petit
+ *   Then le logo est plus petit qu'avant (232 px) et reste au-dessus de sa taille minimale
  */
 test("accueil : logo complet couleur, assez grand, non déformé", async ({ page }) => {
   await openHome(page);
@@ -52,6 +54,7 @@ test("accueil : logo complet couleur, assez grand, non déformé", async ({ page
 
   const box = await logo(page).boundingBox();
   expect(box!.width * DRAWING_SHARE).toBeGreaterThanOrEqual(200);
+  expect(box!.width).toBeLessThan(232);
   expect(box!.width / box!.height).toBeCloseTo(CANVAS_RATIO, 1);
 
   const natural = await logo(page).evaluate((img: HTMLImageElement) => ({

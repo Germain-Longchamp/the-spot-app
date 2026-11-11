@@ -330,3 +330,29 @@ test("petit écran 320 x 568 : la grille ne déborde pas", async ({ page }) => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   expect(overflow).toBe(false);
 });
+
+/**
+ * SCRUM-51 — Scenario: Ordre des cartes
+ *   Given j'ai des photos et la galerie est ouverte
+ *   When j'ouvre l'accueil
+ *   Then dans l'ordre : "Comment ça marche", "Galerie de l'événement", puis "Mes photos"
+ * Scenario: Libellé
+ *   Then l'accueil affiche "Galerie de l'événement" et plus "Voir la galerie"
+ */
+test("accueil : « Comment ça marche », puis la galerie, puis « Mes photos »", async ({ page }) => {
+  await mockAlbum(page, { photos: [{ id: "a" }] });
+  await mockGuestBackend(page, { event: { gallery_enabled: true, gallery_visible: true } });
+  await page.goto(URL);
+
+  const steps = page.getByRole("list", { name: "Comment ça marche" });
+  const gallery = page.getByRole("link", { name: "Galerie de l'événement" });
+  await expect(entry(page)).toBeVisible();
+  const [a, b, c] = [
+    (await steps.boundingBox())!.y,
+    (await gallery.boundingBox())!.y,
+    (await entry(page).boundingBox())!.y,
+  ];
+  expect(a).toBeLessThan(b);
+  expect(b).toBeLessThan(c);
+  await expect(page.getByText("Voir la galerie")).toHaveCount(0);
+});

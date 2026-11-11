@@ -59,7 +59,7 @@ test("galerie visible : le lien apparaît", async ({ page }) => {
   await page.goto(URL);
 
   await expect(
-    page.getByRole("link", { name: "Voir la galerie" })
+    page.getByRole("link", { name: "Galerie de l'événement" })
   ).toBeVisible();
 });
 
