@@ -61,18 +61,22 @@ test("les couleurs sont celles de la charte, sans variante", () => {
 
 /**
  * Scenario: Actions principales aux couleurs de la marque (thème clair, SCRUM-46)
- *   Then les boutons "Prendre une photo" et "Importer une photo" sont en Framboise
- *   And leur texte est blanc et lisible
+ *   Revu par SCRUM-57 (maquette d'Alison) : "Prendre une photo" en Framboise
+ *   plein, texte blanc ; "Importer une photo" en blanc, bordure et texte Framboise
  */
-test("les actions principales de l'accueil sont en Framboise, texte blanc", async ({ page }) => {
+test("accueil : « Prendre une photo » en Framboise plein, « Importer » bordé de Framboise", async ({ page }) => {
   await openGuestHome(page);
 
-  for (const name of ["Prendre une photo", "Importer une photo"]) {
-    const button = page.getByRole("button", { name });
-    await expect(button).toHaveCSS("background-color", rgb(colors.accent));
-    await expect(button).toHaveCSS("color", rgb(colors.onAccent));
-  }
+  const take = page.getByRole("button", { name: "Prendre une photo" });
+  await expect(take).toHaveCSS("background-color", rgb(colors.accent));
+  await expect(take).toHaveCSS("color", rgb(colors.onAccent));
   expect(contrast(colors.onAccent, colors.accent)).toBeGreaterThanOrEqual(4.5);
+
+  const load = page.getByRole("button", { name: "Importer une photo" });
+  await expect(load).toHaveCSS("background-color", rgb(colors.surface));
+  await expect(load).toHaveCSS("border-top-color", rgb(colors.accent));
+  await expect(load).toHaveCSS("color", rgb(colors.accent));
+  expect(contrast(colors.accent, colors.surface)).toBeGreaterThanOrEqual(4.5);
 });
 
 /**
