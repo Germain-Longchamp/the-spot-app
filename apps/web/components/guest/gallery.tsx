@@ -5,13 +5,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { PhotoDetail, useAlbum } from "@/components/guest/album";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { ArrowLeftIcon } from "@/components/ui/icons";
+import { ArrowLeftIcon, ArrowUpIcon, CameraIcon } from "@/components/ui/icons";
 import { Logo } from "@/components/ui/logo";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 import {
+  countGalleryPhotos,
+  diffGallery,
+  GALLERY_PAGE_SIZE,
+  GALLERY_POLL_INTERVAL_MS,
   GalleryPhoto,
   loadGalleryPage,
+  loadGalleryRows,
+  newPhotosText,
   signFullImage,
+  TAKE_PHOTO_HASH,
+  toGalleryPhotos,
 } from "@/lib/guest/gallery";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,13 +33,14 @@ interface Props {
  * The one way to every photo (SCRUM-63): what the other guests shared when
  * the gallery is open, and all of this guest's own photos, whatever the
  * gallery state. A guest's own photo opens with its print tracking, or the
- * way to print it.
+ * way to print it. Kept fresh on its own (SCRUM-54).
  */
 export function Gallery({ event, token, guestId }: Props) {
   const open = event.galleryEnabled && event.galleryVisible;
   const closed = event.galleryEnabled && !event.galleryVisible;
   const album = useAlbum(event.id, guestId, true);
   const [mineOpened, setMineOpened] = useState<string | null>(null);
+  const [count, setCount] = useState<number | null>(null);
   const detail = mineOpened
     ? album.items?.find((item) => item.photoId === mineOpened)
     : undefined;
@@ -52,21 +61,28 @@ export function Gallery({ event, token, guestId }: Props) {
       {/* Kept mounted under the detail: loaded pages and scroll survive. */}
       <main
         hidden={Boolean(detail)}
-        className="mx-auto flex min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-4 p-4"
+        className="mx-auto flex min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-3.5 px-4 pb-32 pt-4"
       >
-        <header className="flex items-center justify-between gap-3">
+        <header className="flex min-h-11 items-center justify-between gap-3">
           <Link
             href={`/e/${token}`}
             className="-ml-2 inline-flex min-h-11 items-center gap-2 rounded-xl px-2 font-semibold transition-transform active:scale-95"
           >
             <ArrowLeftIcon size={22} />
-            Retour à l&apos;accueil
+            Accueil
           </Link>
-          <Logo variant="icon" width={32} />
+          <Logo variant="icon" width={28} />
         </header>
-        <h1 className="text-2xl font-semibold">
-          {event.galleryEnabled ? "Galerie de l'événement" : "Vos photos"}
-        </h1>
+        <div className="flex items-baseline justify-between gap-3">
+          <h1 className="text-2xl font-bold text-accent">
+            {event.galleryEnabled ? "Galerie" : "Vos photos"}
+          </h1>
+          {count !== null && count > 0 && (
+            <span data-testid="gallery-total" className="text-[13px] text-muted">
+              {count === 1 ? "1 photo" : `${count} photos`}
+            </span>
+          )}
+        </div>
 
         {closed && (
           <p className="text-lg">
@@ -78,6 +94,7 @@ export function Gallery({ event, token, guestId }: Props) {
         <GalleryGrid
           eventId={event.id}
           open={open}
+          onCount={setCount}
           onOpenMine={(photo) => {
             // The print state of the guest's photos may not be read yet: the
             // plain viewer is shown meanwhile.
@@ -89,38 +106,67 @@ export function Gallery({ event, token, guestId }: Props) {
           }}
         />
       </main>
+
+      {!detail && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
+          <div className="pointer-events-auto mx-auto max-w-2xl px-4">
+            <Link
+              href={`/e/${token}#${TAKE_PHOTO_HASH}`}
+              className="flex min-h-14 items-center justify-center gap-2.5 rounded-2xl bg-accent font-bold text-on-accent shadow-lift transition-transform active:scale-[0.98]"
+            >
+              <CameraIcon size={22} />
+              Prendre une photo
+            </Link>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
+/** Near enough to the top to take new photos without moving anything. */
+const AT_TOP_PX = 80;
+const atTop = () => window.scrollY <= AT_TOP_PX;
+
 function GalleryGrid({
   eventId,
   open,
+  onCount,
   onOpenMine,
 }: {
   eventId: string;
   open: boolean;
+  onCount: (count: number) => void;
   /** Opens one of the guest's own photos; false if it cannot yet. */
   onOpenMine: (photo: GalleryPhoto) => boolean;
 }) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  /** Arrived while the guest was further down: shown on demand. */
+  const [waiting, setWaiting] = useState<GalleryPhoto[]>([]);
   const [page, setPage] = useState(0);
   const [more, setMore] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [offline, setOffline] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
   const supabase = useRef(createClient());
+  const shown = useRef<GalleryPhoto[]>([]);
+  const held = useRef<GalleryPhoto[]>([]);
+  const busy = useRef(false);
+  shown.current = photos;
+  held.current = waiting;
 
   const load = useCallback(
     async (nextPage: number) => {
       setLoading(true);
-      setFailed(false);
       const result = await loadGalleryPage(supabase.current, eventId, nextPage);
       setLoading(false);
       if (!result) {
-        setFailed(true);
+        setOffline(true);
         return;
       }
+      setOffline(false);
+      setLoaded(true);
       setPhotos((current) =>
         nextPage === 0 ? result.photos : [...current, ...result.photos]
       );
@@ -130,15 +176,86 @@ function GalleryGrid({
     [eventId]
   );
 
+  /** Shows the photos that arrived meanwhile, on top. */
+  const reveal = useCallback(() => {
+    const arrived = held.current;
+    if (!arrived.length) return;
+    setWaiting([]);
+    setPhotos((current) => [...arrived, ...current.filter((p) => !arrived.some((a) => a.id === p.id))]);
+  }, []);
+
+  /**
+   * Reads the newest rows again, as many as shown plus a page: removed photos
+   * go, new ones appear at once if the guest is at the top, else wait behind
+   * the pill. Nothing moves under the guest's finger.
+   */
+  const refresh = useCallback(async () => {
+    if (busy.current || document.visibilityState === "hidden") return;
+    busy.current = true;
+    try {
+      const count = await countGalleryPhotos(supabase.current, eventId, "all");
+      if (count !== null) onCount(count);
+
+      const known = [...held.current, ...shown.current];
+      const requested = shown.current.length + held.current.length + GALLERY_PAGE_SIZE;
+      const rows = await loadGalleryRows(supabase.current, eventId, 0, requested - 1);
+      if (!rows) {
+        setOffline(true);
+        return;
+      }
+      setOffline(false);
+
+      const { kept, fresh } = diffGallery(known, rows, requested);
+      const keptIds = new Set(kept.map((photo) => photo.id));
+      setPhotos((current) => current.flatMap((photo) =>
+        keptIds.has(photo.id) ? [kept.find((k) => k.id === photo.id)!] : []
+      ));
+      const stillWaiting = held.current.filter((photo) => keptIds.has(photo.id));
+      const arrived = (await toGalleryPhotos(supabase.current, fresh)) ?? [];
+      const next = [...arrived, ...stillWaiting];
+      held.current = next;
+      setWaiting(next);
+      if (atTop()) reveal();
+    } finally {
+      busy.current = false;
+    }
+  }, [eventId, onCount, reveal]);
+
   useEffect(() => {
     load(0);
   }, [load]);
+
+  // Every few seconds while the page is in sight; at once when it comes back.
+  useEffect(() => {
+    const tick = () => (loaded ? refresh() : load(0));
+    const timer = setInterval(tick, GALLERY_POLL_INTERVAL_MS);
+    const onVisible = () => document.visibilityState === "visible" && tick();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loaded, load, refresh]);
+
+  // Back at the top by themselves: the waiting photos come in.
+  useEffect(() => {
+    if (!waiting.length) return;
+    const onScroll = () => atTop() && reveal();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [waiting.length, reveal]);
 
   /** A photo removed while someone looks at the gallery just disappears. */
   const forget = (id: string) =>
     setPhotos((current) => current.filter((photo) => photo.id !== id));
 
-  if (!loading && !failed && photos.length === 0) {
+  const offlineNotice = offline && (
+    <p role="status" className="text-sm text-muted">
+      Connexion perdue, nouvelle tentative…
+    </p>
+  );
+
+  if (loaded && photos.length === 0 && waiting.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-lg">
@@ -146,20 +263,32 @@ function GalleryGrid({
             ? "Aucune photo pour l'instant. Partagez la vôtre depuis l'accueil : elle apparaîtra ici."
             : "Vos photos apparaîtront ici dès que vous en aurez envoyé une."}
         </p>
-        <Button variant="secondary" onClick={() => load(0)}>
-          Actualiser
-        </Button>
+        {offlineNotice}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <Button variant="secondary" onClick={() => load(0)} disabled={loading}>
-        Actualiser
-      </Button>
+      {waiting.length > 0 && (
+        <div className="pointer-events-none sticky top-3 z-10 -mb-14 flex h-10 justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              window.scrollTo({ top: 0 });
+              reveal();
+            }}
+            className="pointer-events-auto flex min-h-10 items-center gap-2 rounded-full bg-foreground px-4 text-[13.5px] font-semibold text-surface shadow-lift transition-transform active:scale-95"
+          >
+            <ArrowUpIcon size={16} />
+            {newPhotosText(waiting.length)}
+          </button>
+        </div>
+      )}
 
-      <ul className="grid grid-cols-3 gap-2">
+      {offlineNotice}
+
+      <ul className="grid grid-cols-3 gap-1.5">
         {photos.map((photo) => (
           <li key={photo.id} className="relative">
             <button
@@ -178,16 +307,16 @@ function GalleryGrid({
                 alt="Photo de la galerie"
                 loading="lazy"
                 onError={() => forget(photo.id)}
-                className="aspect-square w-full rounded-xl object-cover shadow-card transition-transform active:scale-95"
+                className="aspect-square w-full rounded-lg object-cover transition-transform active:scale-95"
               />
             </button>
             {photo.mine && (
-              <span className="pointer-events-none absolute inset-x-1 bottom-1 flex flex-wrap gap-1">
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-on-accent">
+              <span className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex flex-wrap gap-1">
+                <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold text-accent">
                   Vous
                 </span>
                 {!photo.shared && (
-                  <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-foreground">
+                  <span className="rounded-full bg-foreground/80 px-2 py-0.5 text-[11px] font-semibold text-surface">
                     Non partagée
                   </span>
                 )}
@@ -201,13 +330,6 @@ function GalleryGrid({
         <p role="status" className="text-muted">
           Chargement de la galerie…
         </p>
-      )}
-
-      {failed && (
-        <ErrorMessage>
-          Les photos n&apos;ont pas pu être chargées. Vérifiez votre
-          connexion, puis touchez « Actualiser ».
-        </ErrorMessage>
       )}
 
       {more && !loading && (

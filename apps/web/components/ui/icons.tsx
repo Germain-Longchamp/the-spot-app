@@ -106,6 +106,13 @@ export const AlertIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const ArrowUpIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 19V5" />
+    <path d="m5 12 7-7 7 7" />
+  </Icon>
+);
+
 export const ChevronRightIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="m9 18 6-6-6-6" />
