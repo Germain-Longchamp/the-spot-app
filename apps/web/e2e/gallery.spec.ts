@@ -19,13 +19,15 @@ const row = (id: string) => ({
   id,
   storage_path: `${TEST_EVENT.id}/someone/${id}.jpg`,
   thumb_path: `${TEST_EVENT.id}/someone/${id}-thumb.jpg`,
+  is_published: true,
+  is_mine: false,
 });
 
-/** Fakes the published photos and their files; records what was asked. */
+/** Fakes the gallery view (SCRUM-63) and its files; records what was asked. */
 async function mockGallery(page: Page, ids: string[], options: { missing?: string[] } = {}) {
   const asked = { queries: [] as string[], signed: [] as string[] };
 
-  await page.route("**/rest/v1/photos?**", (route) => {
+  await page.route("**/rest/v1/gallery_photos?**", (route) => {
     const url = new globalThis.URL(route.request().url());
     asked.queries.push(url.search);
     const from = Number(url.searchParams.get("offset") ?? 0);
@@ -53,6 +55,9 @@ async function openGallery(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
   await mockGuestBackend(page, {
     event: { gallery_enabled: true, gallery_visible: true, ...event },
   });
+  // The guest's own photos and prints, read for their print button.
+  await page.route("**/rest/v1/photos?**", (route) => json(route, []));
+  await page.route("**/rest/v1/print_jobs?**", (route) => json(route, []));
 }
 
 const thumbs = (page: Page) => page.getByRole("img", { name: "Photo de la galerie" });
@@ -71,7 +76,8 @@ test("galerie ouverte : grille des photos publiées, les plus récentes d'abord"
 
   await expect(thumbs(page)).toHaveCount(3);
   const query = decodeURIComponent(asked.queries[0]);
-  expect(query).toContain("is_published=eq.true");
+  // No "published" filter: RLS returns the shared photos plus the guest's own.
+  expect(query).not.toContain("is_published=eq");
   expect(query).toContain(`event_id=eq.${TEST_EVENT.id}`);
   expect(query).toContain("order=created_at.desc");
   // Light thumbnails in the grid, not the full images.
@@ -79,27 +85,39 @@ test("galerie ouverte : grille des photos publiées, les plus récentes d'abord"
 });
 
 /**
- * Scenario: Galerie cachée
+ * Scenario: Galerie cachée (SCRUM-63 : on y retrouve ses propres photos)
  *   Then je vois un message m'indiquant qu'elle sera disponible plus tard
- *   And aucune photo n'est chargée
+ *   And seules mes photos sont affichées (la base ne renvoie qu'elles)
  */
-test("galerie cachée : message clair et aucune photo demandée", async ({ page }) => {
+test("galerie cachée : message clair, et mes photos seulement", async ({ page }) => {
   await openGallery(page, { gallery_visible: false });
-  const asked = await mockGallery(page, ["p1"]);
+  await mockGallery(page, []);
+  // Registered last, so it wins over the mock above.
+  await page.route("**/rest/v1/gallery_photos?**", (route) =>
+    json(route, [{ ...row("mine"), is_mine: true, is_published: false }])
+  );
   await page.goto(GALLERY);
 
   await expect(page.getByText("La galerie sera disponible plus tard")).toBeVisible();
-  await expect(thumbs(page)).toHaveCount(0);
-  expect(asked.queries).toEqual([]);
+  await expect(thumbs(page)).toHaveCount(1);
+  await expect(page.getByText("Non partagée")).toBeVisible();
 });
 
-test("événement sans galerie : même message, rien de chargé", async ({ page }) => {
-  await openGallery(page, { gallery_enabled: false, gallery_visible: true });
-  const asked = await mockGallery(page, ["p1"]);
+test("galerie cachée sans photo à moi : invitation à en prendre une", async ({ page }) => {
+  await openGallery(page, { gallery_visible: false });
+  await mockGallery(page, []);
   await page.goto(GALLERY);
 
-  await expect(page.getByText("La galerie sera disponible plus tard")).toBeVisible();
-  expect(asked.queries).toEqual([]);
+  await expect(page.getByText("Vos photos apparaîtront ici")).toBeVisible();
+});
+
+test("événement sans galerie : « Vos photos », sans annonce de galerie", async ({ page }) => {
+  await openGallery(page, { gallery_enabled: false, gallery_visible: true });
+  await mockGallery(page, []);
+  await page.goto(GALLERY);
+
+  await expect(page.getByRole("heading", { name: "Vos photos" })).toBeVisible();
+  await expect(page.getByText("La galerie sera disponible plus tard")).toHaveCount(0);
 });
 
 test("galerie vide : invitation à partager sa photo", async ({ page }) => {
@@ -148,7 +166,7 @@ test("une photo supprimée pendant la consultation disparaît", async ({ page })
 
 test("réseau coupé : message simple et bouton pour réessayer", async ({ page }) => {
   await openGallery(page);
-  await page.route("**/rest/v1/photos?**", (route) => route.abort("internetdisconnected"));
+  await page.route("**/rest/v1/gallery_photos?**", (route) => route.abort("internetdisconnected"));
   await page.clock.install();
   await page.goto(GALLERY);
   await expect(page.getByText("Chargement de la galerie…")).toBeVisible();
@@ -207,6 +225,8 @@ test("une photo non publiée n'envoie pas de vignette", async ({ page }) => {
   await page
     .getByLabel("Choisir une photo")
     .setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
+  // Shared by default since SCRUM-63: the guest unticks it.
+  await page.getByRole("checkbox", { name: "Ajouter à la galerie" }).uncheck();
   await page.getByRole("button", { name: "Valider sans imprimer" }).click();
   await expect(page.getByText("Votre photo est bien envoyée.")).toBeVisible();
 

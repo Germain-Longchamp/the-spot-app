@@ -33,7 +33,7 @@ Typographie : Inter, embarquée dans l'application. Contraste WCAG AA vérifié 
 
 Un écran par étape, une action principale par écran :
 
-1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis « Galerie de l'événement », puis la carte « Mes photos (n) » (ordre décidé par Germain le 2026-11-11, SCRUM-51). Logo à 224 px, le plus petit permis par la charte pour le logo complet. Un bandeau en haut signale une impression en attente, en cours, prête ou en souci (SCRUM-47).
+1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis « Galerie de l'événement », seule entrée vers les photos (« Vos photos » si l'événement n'a pas de galerie ; SCRUM-63 a retiré « Mes photos »). Logo à 224 px, le plus petit permis par la charte pour le logo complet. Un bandeau en haut signale une impression en attente, en cours, prête ou en souci (SCRUM-47).
 2. **Caméra** : plein écran, déclencheur rond, fermeture (croix) et bascule de caméra en icônes, éclair blanc à la prise.
 3. **Aperçu** (« Votre photo ») : écran d'une hauteur exacte, sans défilement (SCRUM-52). En haut « Reprendre » ; au milieu la photo encadrée comme un tirage, qui rétrécit pour laisser la place, jamais recadrée ; en bas une barre qui regroupe tout ce qui sert à décider : état de l'imprimante, motif si l'impression est impossible, interrupteur « Ajouter à la galerie », « Imprimer », « Valider sans imprimer ».
 4. **Envoi** : anneau de progression, message rassurant ; jamais de retour possible pendant l'envoi.
@@ -95,12 +95,11 @@ Organisation depuis SCRUM-48 (décision de Germain du 2026-11-08) :
 
 Toutes les couleurs vivent dans `apps/web/lib/ui/tokens.ts` : changer une valeur s'applique à toute l'application. Les anciennes couleurs provisoires (ambre, sarcelle) y sont listées comme interdites. Les composants de base sont dans `apps/web/components/ui/`, visibles sur `/dev/ui` en local.
 
-## Mes photos (SCRUM-47)
+## Galerie, seule entrée vers les photos (SCRUM-63)
 
-Les photos et les impressions de l'invité sont réunies dans une seule vue, la photo étant l'objet central (décisions de Germain du 2026-11-08).
+Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/alison-2026-11/`) : il n'y a plus deux entrées (« Galerie de l'événement » et « Mes photos », SCRUM-47) mais une seule, la Galerie.
 
-- **Accueil** : un bandeau en haut, seulement si une impression est en attente, en cours, prête (pendant 30 minutes) ou en souci ; il ouvre la photo concernée. En bas de l'accueil, une carte « Mes photos (n) » avec trois mini-vignettes, absente tant qu'aucune photo n'est envoyée.
-- **Vue « Mes photos »** : une grille de deux colonnes ; chaque carte porte un badge d'état en clair (« Prête à récupérer », « Un souci : voyez l'équipe », « Impression en cours », « En attente de validation », « Annulée », « Non imprimée ») et, le cas échéant, « Dans la galerie » (lecture seule). Ordre : prête, souci, en cours, en attente, puis le reste du plus récent au plus ancien.
-- **Détail** : la photo en grand, l'état de l'imprimante et le suivi en étapes. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression.
-- Accès aussi depuis l'écran de confirmation (« Voir mes photos »). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.
-
+- **Parcours** : l'invité prend ou importe une photo ; « Ajouter à la galerie de l'événement » est cochée par défaut ; il choisit « Imprimer » ou « Valider sans imprimer ». La confirmation propose « Voir la galerie ».
+- **Galerie** : galerie ouverte, toutes les photos partagées et toutes celles de l'invité ; galerie fermée, seulement les siennes, avec « La galerie sera disponible plus tard » ; événement sans galerie, l'entrée s'appelle « Vos photos ». Les photos de l'invité portent la pastille « Vous », et « Non partagée » si elles ne sont visibles que de lui. Données : vue `gallery_photos` (RLS des photos, `is_mine` sans exposer l'auteur).
+- **Ses propres photos** : un appui ouvre le détail, avec l'état de l'imprimante et le suivi en étapes. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression. Les photos des autres s'ouvrent en grand.
+- **Accueil** : le bandeau d'impression (SCRUM-47) reste en haut et ouvre la photo concernée ; il sera remplacé par la page « Vos tirages » (SCRUM-53). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.

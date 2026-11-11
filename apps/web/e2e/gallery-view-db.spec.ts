@@ -172,3 +172,84 @@ test("une photo publiée sans vignette garde son image entière", async () => {
   );
   expect(rows[0]).toEqual({ thumb_path: null, is_published: true });
 });
+
+/** What the gallery screen reads (SCRUM-63): one list, newest first. */
+const viewOf = (userId: string, eventId: string) =>
+  db.as("authenticated", userId, async (client) =>
+    (
+      await client.query(
+        "select id, is_published, is_mine from public.gallery_photos where event_id = $1 order by created_at desc",
+        [eventId]
+      )
+    ).rows as { id: string; is_published: boolean; is_mine: boolean }[]
+  );
+
+/**
+ * SCRUM-63 — Scenario: Photo non partagée visible par moi seul
+ *   Given j'ai décoché la case puis validé sans imprimer
+ *   Then je vois ma photo, et un autre invité ne la voit pas
+ */
+test("vue galerie ouverte : photos partagées + toutes les miennes, marquées", async () => {
+  const f = await db.seed();
+  await gallery(f.eventId, true, true);
+  const other = await db.seedGuest(f.eventId);
+  const theirsShared = await photoOf({ userId: other.userId, eventId: f.eventId }, true);
+  const theirsKept = await photoOf({ userId: other.userId, eventId: f.eventId }, false);
+  const mineShared = await photoOf(f, true);
+  const mineKept = await photoOf(f, false);
+
+  const mine = await viewOf(f.userId, f.eventId);
+  expect(mine.map((row) => row.id)).toEqual(
+    expect.arrayContaining([theirsShared.photoId, mineShared.photoId, mineKept.photoId])
+  );
+  expect(mine.map((row) => row.id)).not.toContain(theirsKept.photoId);
+  expect(mine.find((row) => row.id === theirsShared.photoId)?.is_mine).toBe(false);
+  expect(mine.find((row) => row.id === mineShared.photoId)?.is_mine).toBe(true);
+  expect(mine.find((row) => row.id === mineKept.photoId)).toMatchObject({
+    is_mine: true,
+    is_published: false,
+  });
+
+  // The other guest sees my shared photo, never the one I kept.
+  const theirs = (await viewOf(other.userId, f.eventId)).map((row) => row.id);
+  expect(theirs).toContain(mineShared.photoId);
+  expect(theirs).not.toContain(mineKept.photoId);
+});
+
+test("vue galerie fermée : seulement mes photos", async () => {
+  const f = await db.seed();
+  await gallery(f.eventId, true, false);
+  const other = await db.seedGuest(f.eventId);
+  await photoOf({ userId: other.userId, eventId: f.eventId }, true);
+  const mineShared = await photoOf(f, true);
+  const mineKept = await photoOf(f, false);
+
+  const rows = await viewOf(f.userId, f.eventId);
+  expect(rows.map((row) => row.id).sort()).toEqual(
+    [f.photoId, mineShared.photoId, mineKept.photoId].sort()
+  );
+  expect(rows.every((row) => row.is_mine)).toBe(true);
+});
+
+test("vue galerie : une photo supprimée par l'équipe disparaît, même pour son auteur", async () => {
+  const f = await db.seed();
+  await gallery(f.eventId, true, true);
+  const removed = await photoOf(f, true);
+  await db.admin.query("update public.photos set deleted_at = now(), is_published = false where id = $1", [
+    removed.photoId,
+  ]);
+
+  expect((await viewOf(f.userId, f.eventId)).map((row) => row.id)).not.toContain(removed.photoId);
+});
+
+test("vue galerie : rien pour un invité d'un autre événement ni pour anon", async () => {
+  const f = await db.seed();
+  await gallery(f.eventId, true, true);
+  await photoOf(f, true);
+  const stranger = await db.seed();
+
+  expect(await viewOf(stranger.userId, f.eventId)).toEqual([]);
+  await expect(
+    db.as("anon", null, (client) => client.query("select id from public.gallery_photos"))
+  ).rejects.toThrow(/permission denied/);
+});

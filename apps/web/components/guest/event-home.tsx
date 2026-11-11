@@ -19,8 +19,6 @@ interface Props {
   importError?: string | null;
   /** A print the guest should hear about now, above everything. */
   banner?: ReactNode;
-  /** The way into the guest's photos, right below the main actions. */
-  album?: ReactNode;
   /** Shown at the end, so the main actions stay first on screen. */
   children?: ReactNode;
 }
@@ -75,7 +73,6 @@ export function EventHome({
   importing = false,
   importError = null,
   banner,
-  album,
   children,
 }: Props) {
   return (
@@ -121,18 +118,18 @@ export function EventHome({
         ))}
       </ol>
 
-      {event.galleryEnabled && event.galleryVisible && (
-        <Link
-          href={`/e/${token}/galerie`}
-          className="flex min-h-14 items-center gap-3 rounded-2xl bg-surface px-4 font-semibold shadow-card transition-transform active:scale-[0.98]"
-        >
-          <GalleryIcon size={22} className="text-accent" />
-          <span className="flex-1">Galerie de l&apos;événement</span>
-          <ChevronRightIcon size={20} className="text-muted" />
-        </Link>
-      )}
-
-      {album}
+      {/* The one way to every photo, the guest's own included (SCRUM-63):
+          always there, even while the gallery is closed or off. */}
+      <Link
+        href={`/e/${token}/galerie`}
+        className="flex min-h-14 items-center gap-3 rounded-2xl bg-surface px-4 font-semibold shadow-card transition-transform active:scale-[0.98]"
+      >
+        <GalleryIcon size={22} className="text-accent" />
+        <span className="flex-1">
+          {event.galleryEnabled ? "Galerie de l'événement" : "Vos photos"}
+        </span>
+        <ChevronRightIcon size={20} className="text-muted" />
+      </Link>
 
       {children}
     </main>

@@ -6,6 +6,10 @@ export interface GalleryPhoto {
   thumbUrl: string;
   /** Path of the full image, signed only when the guest opens it. */
   fullPath: string;
+  /** Taken by this guest. */
+  mine: boolean;
+  /** In the event gallery; false for a photo the guest kept for themselves. */
+  shared: boolean;
 }
 
 /** Enough to fill a phone screen twice, small enough for a slow network. */
@@ -15,10 +19,10 @@ export const GALLERY_PAGE_SIZE = 24;
 const LINK_LIFETIME_S = 60 * 60;
 
 /**
- * One page of published photos, newest first. RLS decides what can be seen:
- * published photos of this guest's event, only when the gallery is open. The
- * explicit filter also hides the guest's own unpublished photos, which RLS
- * lets them read elsewhere. Returns null when the network fails.
+ * One page of the gallery, newest first (SCRUM-63): the photos other guests
+ * shared when the gallery is open, and all of this guest's own photos, shared
+ * or not. RLS decides every row, the view only adds `is_mine`, so no guest id
+ * ever reaches the phone. Returns null when the network fails.
  */
 export async function loadGalleryPage(
   supabase: SupabaseClient,
@@ -28,10 +32,9 @@ export async function loadGalleryPage(
   try {
     const from = page * GALLERY_PAGE_SIZE;
     const { data: rows, error } = await supabase
-      .from("photos")
-      .select("id, storage_path, thumb_path")
+      .from("gallery_photos")
+      .select("id, storage_path, thumb_path, is_published, is_mine")
       .eq("event_id", eventId)
-      .eq("is_published", true)
       .order("created_at", { ascending: false })
       .range(from, from + GALLERY_PAGE_SIZE - 1);
     if (error) return null;
@@ -45,7 +48,15 @@ export async function loadGalleryPage(
       photos: rows.flatMap((row) => {
         const thumbUrl = urls.get(row.thumb_path ?? row.storage_path);
         return thumbUrl
-          ? [{ id: row.id, thumbUrl, fullPath: row.storage_path }]
+          ? [
+              {
+                id: row.id,
+                thumbUrl,
+                fullPath: row.storage_path,
+                mine: row.is_mine,
+                shared: row.is_published,
+              },
+            ]
           : [];
       }),
       more: rows.length === GALLERY_PAGE_SIZE,

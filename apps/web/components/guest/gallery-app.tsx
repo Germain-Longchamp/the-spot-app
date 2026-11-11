@@ -7,7 +7,7 @@ import { GuestApp } from "@/components/guest/guest-app";
 export function GalleryApp({ token }: { token: string }) {
   return (
     <GuestApp token={token}>
-      {(event) => <Gallery event={event} token={token} />}
+      {(event, guestId) => <Gallery event={event} token={token} guestId={guestId} />}
     </GuestApp>
   );
 }
