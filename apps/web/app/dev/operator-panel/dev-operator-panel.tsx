@@ -34,6 +34,8 @@ function Panel() {
   const params = useSearchParams();
   const [snapshot, setSnapshot] = useState<PanelSnapshot>({
     eventName: "Salon de démonstration",
+    accessPath: "/e/jeton-de-demonstration-0123456789abcdef",
+    shortCode: "BQYJ8M",
     printLimit: params.has("limit") ? Number(params.get("limit")) : null,
     paused: params.has("paused"),
     eventOpen: !params.has("closed"),
