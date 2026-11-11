@@ -95,13 +95,12 @@ async function inView(page: Page, locator: Locator) {
 }
 
 /**
- * Scenario: Accueil clair
+ * Scenario: Accueil clair (revu par SCRUM-57, maquette d'Alison)
  *   Then je vois le logo couleur, le nom de l'événement
- *   And deux grandes actions de même poids
+ *   And une action principale et une secondaire, visibles sans défiler
  */
-test("accueil : logo couleur, nom, deux grandes actions de même poids", async ({ page }) => {
+test("accueil : logo couleur, nom, action principale et secondaire", async ({ page }) => {
   await openHome(page);
-
   await expect(page.getByRole("img", { name: "The Spot Memories" })).toHaveAttribute(
     "src",
     /couleur/
@@ -110,13 +109,14 @@ test("accueil : logo couleur, nom, deux grandes actions de même poids", async (
 
   const take = page.getByRole("button", { name: "Prendre une photo" });
   const load = page.getByRole("button", { name: "Importer une photo" });
+  await expect(take).toHaveAttribute("data-variant", "primary");
+  await expect(load).toHaveAttribute("data-variant", "secondary");
   const [a, b] = [await take.boundingBox(), await load.boundingBox()];
-  expect(a!.height).toBeGreaterThanOrEqual(120);
-  expect(Math.abs(a!.width - b!.width)).toBeLessThanOrEqual(1);
-  expect(Math.abs(a!.height - b!.height)).toBeLessThanOrEqual(1);
+  // The main action is the bigger one, and comes first.
+  expect(a!.height).toBeGreaterThan(b!.height);
+  expect(a!.y).toBeLessThan(b!.y);
   await inView(page, take);
   await inView(page, load);
-  await expect(page.getByRole("list", { name: "Comment ça marche" })).toBeVisible();
 });
 
 /**

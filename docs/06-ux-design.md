@@ -33,7 +33,7 @@ Typographie : Inter, embarquée dans l'application. Contraste WCAG AA vérifié 
 
 Un écran par étape, une action principale par écran :
 
-1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis « Galerie de l'événement », seule entrée vers les photos (« Vos photos » si l'événement n'a pas de galerie ; SCRUM-63 a retiré « Mes photos »). Logo à 224 px, le plus petit permis par la charte pour le logo complet. Un bandeau en haut signale une impression en attente, en cours, prête ou en souci (SCRUM-47).
+1. **Accueil** (maquette d'Alison, SCRUM-57, remplace SCRUM-51) : logo couleur à 224 px (le plus petit permis par la charte pour le logo complet), date de l'événement en surtitre (rien sans date), nom de l'événement en titre framboise. « Prendre une photo » en action principale (framboise plein), « Importer une photo » en secondaire (blanc, bordure framboise), chacune avec une ligne d'aide. Dessous, un bandeau pêche clair résume les tirages (« 2 tirages dans la file » et la position du prochain ; « Votre photo est prête » ; souci en rouge) et ouvre « Vos tirages ». En bas, une seule entrée « Voir la galerie » avec le nombre de photos (« 24 photos partagées » ; galerie fermée : « Dévoilée plus tard · 2 de vos photos » ; sans galerie : « Vos photos »). « Comment ça marche » est retiré : les trois étapes vont sur la pancarte sous le QR code.
 2. **Caméra** : plein écran, déclencheur rond, fermeture (croix) et bascule de caméra en icônes, éclair blanc à la prise.
 3. **Aperçu** (« Votre photo ») : écran d'une hauteur exacte, sans défilement (SCRUM-52). En haut « Reprendre » ; au milieu la photo encadrée comme un tirage, qui rétrécit pour laisser la place, jamais recadrée ; en bas une barre qui regroupe tout ce qui sert à décider : état de l'imprimante, motif si l'impression est impossible, interrupteur « Ajouter à la galerie », « Imprimer », « Valider sans imprimer ».
 4. **Envoi** : anneau de progression, message rassurant ; jamais de retour possible pendant l'envoi.
@@ -44,7 +44,7 @@ Composants : `components/guest/screen.tsx` (en-tête, contenu, barre du bas), `c
 ## Principes pour les écrans
 
 - Boutons grands, utilisables à une main, sur un téléphone en portrait
-- Les deux actions de l'accueil (« Prendre une photo », « Importer une photo ») ont la même visibilité et tiennent sans défilement
+- Sur l'accueil, « Prendre une photo » est l'action principale et « Importer une photo » la secondaire ; les deux tiennent sans défilement, jusqu'à 320 × 568 (SCRUM-57)
 - Écran de chargement plutôt qu'un écran vide quand le réseau est lent
 - Messages d'erreur : ce qui s'est passé, ce que l'invité peut faire, jamais de détail technique
 - Boutons désactivés : toujours accompagnés d'une explication
@@ -102,7 +102,7 @@ Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/a
 - **Parcours** : l'invité prend ou importe une photo ; « Ajouter à la galerie de l'événement » est cochée par défaut ; il choisit « Imprimer » ou « Valider sans imprimer ». La confirmation propose « Voir la galerie ».
 - **Galerie** : galerie ouverte, toutes les photos partagées et toutes celles de l'invité ; galerie fermée, seulement les siennes, avec « La galerie sera disponible plus tard » ; événement sans galerie, l'entrée s'appelle « Vos photos ». Les photos de l'invité portent la pastille « Vous », et « Non partagée » si elles ne sont visibles que de lui. Données : vue `gallery_photos` (RLS des photos, `is_mine` sans exposer l'auteur).
 - **Ses propres photos** : un appui ouvre le détail, avec l'état de l'imprimante et le suivi en étapes. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression. Les photos des autres s'ouvrent en grand.
-- **Accueil** : le bandeau d'impression (SCRUM-47) reste en haut et ouvre la photo concernée ; il sera remplacé par la page « Vos tirages » (SCRUM-53). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.
+- **Accueil** : le bandeau d'impression, sous les deux actions depuis SCRUM-57, ouvre « Vos tirages » (SCRUM-53). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.
 
 ## Vos tirages (SCRUM-53)
 

@@ -4,6 +4,8 @@ import { reportError, setErrorEvent } from "@/lib/errors/report";
 export interface GuestEvent {
   id: string;
   name: string;
+  /** "2027-01-21", or null when the organizer gave none. */
+  eventDate: string | null;
   /** The event has a gallery: guests may choose to publish. */
   galleryEnabled: boolean;
   /** The gallery is open: guests may look at it. */
@@ -55,6 +57,7 @@ export async function enterEvent(
       event: {
         id: data.event.id,
         name: data.event.name,
+        eventDate: data.event.event_date ?? null,
         galleryEnabled: data.event.gallery_enabled ?? false,
         galleryVisible: data.event.gallery_visible,
       },

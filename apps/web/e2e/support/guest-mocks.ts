@@ -1,6 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 
-const cors = {
+export const cors = {
   "access-control-allow-origin": "*",
   "access-control-allow-headers": "*",
   "access-control-allow-methods": "*",
@@ -27,6 +27,7 @@ function fakeJwt() {
 export const TEST_EVENT = {
   id: "22222222-2222-4222-8222-222222222222",
   name: "Salon de démonstration",
+  event_date: null as string | null,
   gallery_enabled: true,
   gallery_visible: false,
 };

@@ -183,7 +183,7 @@ test("lien de l'accueil vers la galerie, et retour", async ({ page }) => {
   await page.route("**/rest/v1/print_jobs?**", (route) => json(route, []));
   await page.goto("/e/jeton-de-test");
 
-  await page.getByRole("link", { name: "Galerie de l'événement" }).click();
+  await page.getByRole("link", { name: /Voir la galerie/ }).click();
   await expect(page).toHaveURL(/\/galerie$/);
   await expect(thumbs(page)).toHaveCount(1);
 

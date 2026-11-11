@@ -85,3 +85,35 @@ async function signPaths(supabase: SupabaseClient, paths: string[]) {
     )
   );
 }
+
+/**
+ * How many photos wait behind the home's gallery entry (SCRUM-57): the shared
+ * ones while the gallery is open, otherwise the guest's own. A count only, no
+ * row sent. Null when the network fails: the entry then shows no number.
+ */
+export async function countGalleryPhotos(
+  supabase: SupabaseClient,
+  eventId: string,
+  scope: "shared" | "mine"
+): Promise<number | null> {
+  try {
+    const { count, error } = await supabase
+      .from("gallery_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .eq(scope === "shared" ? "is_published" : "is_mine", true);
+    return error ? null : count;
+  } catch {
+    return null;
+  }
+}
+
+/** "24 photos partagées", "1 de vos photos": the line under the gallery entry. */
+export function galleryCountText(count: number, scope: "shared" | "mine"): string {
+  if (scope === "shared") {
+    if (count === 0) return "Aucune photo pour l'instant";
+    return count === 1 ? "1 photo partagée" : `${count} photos partagées`;
+  }
+  if (count === 0) return "Aucune photo pour l'instant";
+  return count === 1 ? "1 de vos photos" : `${count} de vos photos`;
+}

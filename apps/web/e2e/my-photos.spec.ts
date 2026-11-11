@@ -44,7 +44,7 @@ test("une seule entrée : la galerie, plus de « Mes photos »", async ({ page }
   await mockAlbum(page, { photos: [{ id: "a" }, { id: "b" }] });
   await openHome(page);
 
-  await expect(page.getByRole("link", { name: "Galerie de l'événement" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Voir la galerie/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Mes photos/ })).toHaveCount(0);
   await expect(page.getByText("Mes photos")).toHaveCount(0);
 });
@@ -53,7 +53,7 @@ test("même galerie fermée, l'entrée reste là pour retrouver ses photos", asy
   await mockAlbum(page, { photos: [{ id: "a" }] });
   await openHome(page, { gallery_enabled: true, gallery_visible: false });
 
-  await page.getByRole("link", { name: "Galerie de l'événement" }).click();
+  await page.getByRole("link", { name: /Voir la galerie/ }).click();
 
   await expect(page.getByText("La galerie sera disponible plus tard")).toBeVisible();
   await expect(myTiles(page)).toHaveCount(1);
@@ -168,7 +168,7 @@ test("seules mes photos de cet événement servent au suivi", async ({ page }) =
 
 // ---- The print banner on the home (SCRUM-47, kept) ----
 
-test("accueil : bandeau d'impression en haut", async ({ page }) => {
+test("accueil : bandeau d'impression sous les deux actions (SCRUM-57)", async ({ page }) => {
   await mockAlbum(page, {
     photos: [{ id: "a" }, { id: "b" }, { id: "c" }],
     jobs: [fakeJob("j1", "PRINTING", "b")],
@@ -176,11 +176,11 @@ test("accueil : bandeau d'impression en haut", async ({ page }) => {
   await openHome(page);
 
   await expect(banner(page)).toContainText("en cours d'impression");
-  const [bannerBox, logoBox] = [
+  const [bannerBox, importBox] = [
     await banner(page).boundingBox(),
-    await page.getByRole("img", { name: "The Spot Memories" }).boundingBox(),
+    await page.getByRole("button", { name: "Importer une photo" }).boundingBox(),
   ];
-  expect(bannerBox!.y).toBeLessThan(logoBox!.y);
+  expect(bannerBox!.y).toBeGreaterThan(importBox!.y);
 });
 
 test("sans impression en cours, aucun bandeau", async ({ page }) => {
@@ -229,7 +229,8 @@ test("le bandeau se met à jour tout seul quand la photo est prête", async ({ p
   album.jobs = [fakeJob("j1", "DONE", "a")];
   await page.clock.runFor(POLL_MS);
 
-  await expect(banner(page)).toContainText("prête : à récupérer près de l'imprimante");
+  await expect(banner(page)).toContainText("Votre photo est prête");
+  await expect(banner(page)).toContainText("À récupérer près de l'imprimante");
 });
 
 for (const status of ["STUCK", "FAILED"] as const) {

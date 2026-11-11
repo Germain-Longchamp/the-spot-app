@@ -35,15 +35,6 @@ const badge: Record<PrintJobStatus | "NONE", { text: string; tone: string }> = {
   NONE: { text: "Non imprimée", tone: "bg-surface text-foreground border border-border" },
 };
 
-/** One sentence for the home banner, the most urgent request first. */
-const bannerText: Partial<Record<PrintJobStatus, string>> = {
-  DONE: "Votre photo est prête : à récupérer près de l'imprimante.",
-  STUCK: "Un souci avec votre impression : rendez-vous auprès de l'équipe.",
-  FAILED: "Un souci avec votre impression : rendez-vous auprès de l'équipe.",
-  PRINTING: "Votre photo est en cours d'impression.",
-  PENDING: "Votre impression attend la validation de l'équipe.",
-};
-
 /**
  * The guest's photos and prints, read again every few seconds: the home
  * banner and the print button of the guest's own photos in the gallery. Paused while
@@ -86,29 +77,10 @@ function StatusBadge({ item }: { item: AlbumItem }) {
   );
 }
 
-function Thumb({ item, className = "" }: { item: AlbumItem; className?: string }) {
-  return item.thumbUrl ? (
-    // Signed, short-lived links: an image optimizer would cache them.
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={item.thumbUrl}
-      alt="Une de vos photos"
-      loading="lazy"
-      className={`aspect-square w-full rounded-xl bg-divider object-cover ${className}`}
-    />
-  ) : (
-    <span
-      className={`flex aspect-square w-full items-center justify-center rounded-xl bg-divider text-muted ${className}`}
-    >
-      <ImageIcon size={28} />
-      <span className="sr-only">Photo indisponible</span>
-    </span>
-  );
-}
-
 /**
- * On the event home: the one request the guest should hear about now. A tap
- * opens "Vos tirages" (SCRUM-53), where every print shows.
+ * On the event home, under the two actions (SCRUM-57): where the guest's
+ * prints stand, in two lines. A tap opens "Vos tirages" (SCRUM-53).
+ * Problems first, then a print to collect, then the queue.
  */
 export function PrintBanner({
   items,
@@ -117,35 +89,55 @@ export function PrintBanner({
   items: AlbumItem[];
   onOpen: () => void;
 }) {
-  const active = items.find((item) => isActive(item));
-  if (!active?.print) return null;
-  const status = active.print.status;
-  const problem = status === "STUCK" || status === "FAILED";
-  const text =
-    status === "PENDING" && active.print.ahead !== null
-      ? `Votre impression est dans la file : ${queueText(active.print.ahead).toLowerCase()}.`
-      : bannerText[status];
+  const active = items.filter((item) => isActive(item));
+  if (!active.length) return null;
+  const having = (...statuses: string[]) =>
+    active.filter((item) => statuses.includes(item.print!.status));
+  const problems = having("STUCK", "FAILED");
+  const ready = having("DONE");
+  const printing = having("PRINTING");
+  // The guest's request closest to the printer.
+  const positions = having("PENDING").flatMap((item) =>
+    item.print!.ahead === null ? [] : [item.print!.ahead]
+  );
+  const nextAhead = positions.length ? Math.min(...positions) : null;
+  const inQueue = printing.length + having("PENDING").length;
+
+  let title: string;
+  let detail: string;
+  let tone = "bg-brand-soft text-on-brand";
+  if (problems.length) {
+    title = "Un souci avec votre impression";
+    detail = "Rendez-vous auprès de l'équipe";
+    tone = "bg-danger text-surface";
+  } else if (ready.length) {
+    title = ready.length > 1 ? `${ready.length} photos prêtes` : "Votre photo est prête";
+    detail = "À récupérer près de l'imprimante";
+    tone = "bg-brand text-on-brand";
+  } else {
+    title = inQueue > 1 ? `${inQueue} tirages dans la file` : "1 tirage dans la file";
+    detail = printing.length
+      ? "Votre photo est en cours d'impression"
+      : nextAhead !== null
+        ? queueText(nextAhead)
+        : "En attente de validation par l'équipe";
+  }
 
   return (
     <button
       type="button"
       data-testid="print-banner"
       onClick={onOpen}
-      className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left shadow-card transition-transform active:scale-[0.98] ${
-        status === "DONE"
-          ? "bg-success text-surface"
-          : problem
-            ? "bg-danger text-surface"
-            : "bg-surface text-foreground"
-      }`}
+      className={`flex w-full items-center gap-3 rounded-[14px] px-3.5 py-3 text-left transition-transform active:scale-[0.98] ${tone}`}
     >
-      <span className="size-12 shrink-0 overflow-hidden rounded-xl">
-        <Thumb item={active} className="rounded-none" />
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-surface/40">
+        {ready.length && !problems.length ? <CheckIcon size={20} /> : <PrinterIcon size={20} />}
       </span>
-      <span role="status" aria-live="polite" className="flex-1 font-semibold">
-        {text}
+      <span role="status" aria-live="polite" className="flex flex-1 flex-col">
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-[13px] opacity-90">{detail} · voir le suivi</span>
       </span>
-      {status === "DONE" ? <CheckIcon size={22} /> : <ChevronRightIcon size={22} />}
+      <ChevronRightIcon size={18} />
     </button>
   );
 }
