@@ -33,7 +33,7 @@ Typographie : Inter, embarquée dans l'application. Contraste WCAG AA vérifié 
 
 Un écran par étape, une action principale par écran :
 
-1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis la carte « Mes photos (n) » et le lien vers la galerie. Un bandeau en haut signale une impression en attente, en cours, prête ou en souci (SCRUM-47).
+1. **Accueil** : logo couleur, nom de l'événement, deux grandes tuiles de même poids (« Prendre une photo », « Importer une photo »), « Comment ça marche » en trois étapes, puis « Galerie de l'événement », puis la carte « Mes photos (n) » (ordre décidé par Germain le 2026-11-11, SCRUM-51). Logo à 224 px, le plus petit permis par la charte pour le logo complet. Un bandeau en haut signale une impression en attente, en cours, prête ou en souci (SCRUM-47).
 2. **Caméra** : plein écran, déclencheur rond, fermeture (croix) et bascule de caméra en icônes, éclair blanc à la prise.
 3. **Aperçu** (« Votre photo ») : photo encadrée comme un tirage, état de l'imprimante, interrupteur « Ajouter à la galerie », barre d'actions fixée en bas (« Imprimer », « Valider sans imprimer »), « Reprendre » toujours visible en haut.
 4. **Envoi** : anneau de progression, message rassurant ; jamais de retour possible pendant l'envoi.
@@ -99,7 +99,7 @@ Toutes les couleurs vivent dans `apps/web/lib/ui/tokens.ts` : changer une valeur
 
 Les photos et les impressions de l'invité sont réunies dans une seule vue, la photo étant l'objet central (décisions de Germain du 2026-11-08).
 
-- **Accueil** : un bandeau en haut, seulement si une impression est en attente, en cours, prête (pendant 30 minutes) ou en souci ; il ouvre la photo concernée. Sous les deux tuiles, une carte « Mes photos (n) » avec trois mini-vignettes, absente tant qu'aucune photo n'est envoyée.
+- **Accueil** : un bandeau en haut, seulement si une impression est en attente, en cours, prête (pendant 30 minutes) ou en souci ; il ouvre la photo concernée. En bas de l'accueil, une carte « Mes photos (n) » avec trois mini-vignettes, absente tant qu'aucune photo n'est envoyée.
 - **Vue « Mes photos »** : une grille de deux colonnes ; chaque carte porte un badge d'état en clair (« Prête à récupérer », « Un souci : voyez l'équipe », « Impression en cours », « En attente de validation », « Annulée », « Non imprimée ») et, le cas échéant, « Dans la galerie » (lecture seule). Ordre : prête, souci, en cours, en attente, puis le reste du plus récent au plus ancien.
 - **Détail** : la photo en grand, l'état de l'imprimante et le suivi en étapes. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression.
 - Accès aussi depuis l'écran de confirmation (« Voir mes photos »). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.

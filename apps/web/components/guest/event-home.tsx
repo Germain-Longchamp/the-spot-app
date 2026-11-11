@@ -82,7 +82,7 @@ export function EventHome({
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-md animate-screen-in flex-col gap-6 px-4 pb-10 pt-6">
       {banner}
       <div className="flex flex-col items-center gap-3 text-center">
-        <Logo width={232} />
+        <Logo width={224} />
         <h1 className="break-words text-2xl font-semibold">{event.name}</h1>
         <p className="text-muted">
           Prenez une photo ou choisissez-en une : on l&apos;imprime pour vous.
@@ -107,8 +107,6 @@ export function EventHome({
 
       {importError && <ErrorMessage>{importError}</ErrorMessage>}
 
-      {album}
-
       <ol aria-label="Comment ça marche" className="grid grid-cols-3 gap-2 text-center text-sm text-muted">
         {howItWorks.map((step, index) => (
           <li key={step} className="flex flex-col items-center gap-2">
@@ -129,10 +127,12 @@ export function EventHome({
           className="flex min-h-14 items-center gap-3 rounded-2xl bg-surface px-4 font-semibold shadow-card transition-transform active:scale-[0.98]"
         >
           <GalleryIcon size={22} className="text-accent" />
-          <span className="flex-1">Voir la galerie</span>
+          <span className="flex-1">Galerie de l&apos;événement</span>
           <ChevronRightIcon size={20} className="text-muted" />
         </Link>
       )}
+
+      {album}
 
       {children}
     </main>
