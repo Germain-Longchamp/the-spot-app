@@ -114,9 +114,11 @@ L'agent exige Node 22 : il plante au démarrage sous Node 20. Il interroge Supab
 
 Aucun statut brut n'est jamais affiché. En v2, le texte de position deviendra « N photos avant la vôtre ».
 
-## Imprimante réelle (SCRUM-26) — en attente d'informations
+## Imprimante réelle (SCRUM-26) — informations partielles
 
-Imprimante photo professionnelle fournie par le client. À obtenir : modèle, connexion (USB, réseau, Wi-Fi), système de l'ordinateur (Windows ou Mac), formats de papier, consommables et coût par tirage, retour d'état disponible via le pilote.
+Connu au 2026-11-12 (Germain) : très probablement une **DNP DS620** (à confirmer), **toujours du 10 × 15** (pas de 5 × 15 ni d'autre découpe), ordinateur du salon **probablement un Mac**.
+
+Encore à obtenir : confirmation du modèle, connexion (USB a priori), brillant ou mat, consommables et coût par tirage, retour d'état disponible via le pilote (fin d'impression, papier ou ruban épuisé, bourrage), accès à l'imprimante pour des essais avant le salon.
 
 Principe d'intégration : préparer une image au bon format, puis la passer au pilote via la file d'impression du système. Le cadre et le numéro de la v2 se feront par composition d'image dans notre code, sans dépendre de l'imprimante.
 
