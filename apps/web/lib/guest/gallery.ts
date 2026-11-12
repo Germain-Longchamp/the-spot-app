@@ -194,6 +194,15 @@ export function newPhotosText(count: number): string {
 /** "/e/<token>#photo": the home opens straight on the camera (SCRUM-54). */
 export const TAKE_PHOTO_HASH = "photo";
 
+/** "/e/<token>#tirages": the home opens straight on "Vos tirages" (SCRUM-55). */
+export const PRINTS_HASH = "tirages";
+
+/** The photo shown large, in the gallery's address: the phone's back closes it. */
+export const PHOTO_PARAM = "photo";
+
+/** Time to read "Cette photo n'est plus disponible" before the next one. */
+export const GONE_DELAY_MS = 2_000;
+
 /**
  * The gallery settings of the guest's event, read again while the gallery is
  * on screen (SCRUM-56): the team may open it at any time. RLS limits the read

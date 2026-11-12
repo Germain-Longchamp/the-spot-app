@@ -26,13 +26,16 @@ async function openHome(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
 const banner = (page: Page) => page.getByTestId("print-banner");
 const myTiles = (page: Page) => page.getByRole("button", { name: "Ouvrir votre photo" });
 
-/** Opens the gallery, then the guest's first photo, with its print state. */
+const viewer = (page: Page) => page.getByRole("dialog", { name: "Photo agrandie" });
+const printState = (page: Page) => page.getByTestId("viewer-print-state");
+
+/** Opens the gallery, then the guest's first photo large (SCRUM-55). */
 async function openMyPhoto(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
   await mockGuestBackend(page, { event: { gallery_enabled: true, gallery_visible: true, ...event } });
   await page.goto(GALLERY);
   await expect(myTiles(page).first()).toBeVisible();
   await myTiles(page).first().click();
-  await expect(page.getByRole("heading", { name: "Votre photo" })).toBeVisible();
+  await expect(viewer(page).getByRole("img", { name: "Votre photo" })).toBeVisible();
 }
 
 /**
@@ -103,8 +106,9 @@ test("imprimer plus tard une de mes photos depuis la galerie", async ({ page }) 
   const print = page.getByRole("button", { name: "Imprimer", exact: true });
   await print.dblclick();
 
-  await expect(page.getByRole("list", { name: "Étapes de l'impression" })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: guestStatusLabel("PENDING") })).toBeVisible();
+  // A pill, no step-by-step tracking (SCRUM-55).
+  await expect(printState(page)).toHaveText("En attente de validation");
+  await expect(page.getByRole("list", { name: "Étapes de l'impression" })).toHaveCount(0);
   await expect(print).toHaveCount(0);
   expect(album.created).toHaveLength(1);
   expect(album.created[0].p_photo_id).toBe("a");
@@ -129,7 +133,7 @@ for (const status of ["DONE", "PENDING", "PRINTING"] as const) {
     await mockAlbum(page, { photos: [{ id: "a" }], jobs: [fakeJob("j1", status, "a")] });
     await openMyPhoto(page);
 
-    await expect(page.getByRole("list", { name: "Étapes de l'impression" })).toBeVisible();
+    await expect(printState(page)).toBeVisible();
     await expect(page.getByRole("button", { name: "Imprimer", exact: true })).toHaveCount(0);
   });
 }
@@ -149,7 +153,7 @@ test("retour : de ma photo à la galerie, au même endroit", async ({ page }) =>
   await mockAlbum(page, { photos: [{ id: "a" }, { id: "b" }] });
   await openMyPhoto(page);
 
-  await page.getByRole("button", { name: "Galerie" }).click();
+  await viewer(page).getByRole("button", { name: "Galerie" }).click();
 
   await expect(page.getByRole("heading", { name: "Galerie", exact: true })).toBeVisible();
   await expect(myTiles(page)).toHaveCount(2);
@@ -159,7 +163,7 @@ test("retour : de ma photo à la galerie, au même endroit", async ({ page }) =>
  * SCRUM-64 — Scenario: Seule la photo est affichée
  *   Given je suis sur la Galerie avec une de mes photos
  *   When je l'ouvre
- *   Then je vois "Votre photo"
+ *   Then je vois ma photo en grand (SCRUM-55 : la visionneuse)
  *   And la grille de la Galerie n'est pas visible
  */
 test("ma photo ouverte : la grille de la galerie n'est plus affichée dessous", async ({ page }) => {
@@ -188,10 +192,10 @@ test("retour de ma photo : la grille revient à la même position", async ({ pag
   const before = await page.evaluate(() => window.scrollY);
   expect(before).toBeGreaterThan(200);
   await myTiles(page).last().click();
-  await expect(page.getByRole("heading", { name: "Votre photo" })).toBeVisible();
+  await expect(viewer(page).getByRole("img", { name: "Votre photo" })).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-  await page.getByRole("button", { name: "Galerie" }).click();
+  await viewer(page).getByRole("button", { name: "Galerie" }).click();
 
   await expect(myTiles(page).last()).toBeInViewport();
   expect(await page.evaluate(() => window.scrollY)).toBe(before);

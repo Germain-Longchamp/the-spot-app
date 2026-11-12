@@ -101,7 +101,7 @@ Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/a
 
 - **Parcours** : l'invité prend ou importe une photo ; « Ajouter à la galerie de l'événement » est cochée par défaut ; il choisit « Imprimer » ou « Valider sans imprimer ». La confirmation propose « Voir la galerie ».
 - **Galerie** : galerie ouverte, toutes les photos partagées et toutes celles de l'invité ; galerie fermée, seulement les siennes, avec « La galerie sera disponible plus tard » ; événement sans galerie, l'entrée s'appelle « Vos photos ». Les photos de l'invité portent la pastille « Vous », et « Non partagée » si elles ne sont visibles que de lui. Données : vue `gallery_photos` (RLS des photos, `is_mine` sans exposer l'auteur).
-- **Ses propres photos** : un appui ouvre le détail, avec l'état de l'imprimante et le suivi en étapes. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression. Les photos des autres s'ouvrent en grand.
+- **Ses propres photos** : elles s'ouvrent dans la même visionneuse que les autres (SCRUM-55, ci-dessous), avec leur état d'impression en pastille. « Imprimer » n'est proposé que pour une photo jamais imprimée ou dont la dernière demande a été annulée ; pas de réimpression.
 - **Accueil** : le bandeau d'impression, sous les deux actions depuis SCRUM-57, ouvre « Vos tirages » (SCRUM-53). Mise à jour toutes les 5 secondes, dernier état connu si le réseau tombe.
 
 ## Vos tirages (SCRUM-53)
@@ -128,3 +128,16 @@ Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/a
 - La page relit les réglages de galerie de l'événement toutes les 10 s : quand l'équipe ouvre la galerie, l'écran bascule sur la galerie complète, sans recharger.
 - Aucune photo : « Vous n'avez pas encore de photo. » Réseau coupé : dernier état affiché.
 - Galerie désactivée : pas d'écran surprise, la page s'appelle « Vos photos ».
+
+## Photo en grand (SCRUM-55)
+
+Maquette d'Alison (5-photo-en-grand), retouchée par la recette de Germain du 2026-11-12.
+
+- Une seule visionneuse pour toutes les photos de la galerie, celles de l'invité comprises, dans l'ordre de la grille. Fond sombre (`foreground`, l'encre d'Alison), photo entière jamais recadrée, la vignette floue en attendant la photo complète.
+- En haut : « Galerie » (bouton contour) à gauche, compteur « 7 / 24 » à droite. En bas : « Glissez pour voir les autres photos », puis les flèches « Photo précédente » et « Photo suivante » (absentes au bord), avec au centre l'action de la photo.
+- Glisser (au moins 50 px, plus horizontal que vertical), les flèches ou le clavier (← →, Échap) changent de photo. Au bout des photos chargées, « suivante » charge la page d'après.
+- L'adresse porte la photo (`?photo=…`) : le retour du téléphone ramène à la grille, à la même position. Une page rechargée avec une photo dans l'adresse montre la grille.
+- Les nouvelles photos ne décalent ni la photo ni le compteur : elles attendent le retour à la grille. Une photo supprimée par l'équipe : « Cette photo n'est plus disponible. », puis la suivante au bout de 2 s.
+- Photo de l'invité : pastilles « Vous », « Non partagée » si besoin, et l'état d'impression en langage humain (« En attente de validation », « Impression en cours », « Prête à récupérer »…) qui ouvre « Vos tirages » (`/e/<jeton>#tirages`). **Pas de suivi en étapes ici** (décision de Germain du 2026-11-12 : doublon avec « Vos tirages » et le bandeau de l'accueil).
+- Photo de l'invité jamais imprimée (ou demande annulée) : « Imprimer » au centre, l'état de l'imprimante et, le cas échéant, le motif (pause, limite atteinte) juste au-dessus (règle UX n°1).
+- Photo d'un autre invité : ni « Imprimer » ni état d'impression. « Télécharger » viendra au centre (SCRUM-59).
