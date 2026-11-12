@@ -18,9 +18,17 @@ import {
   ArrowLeftIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  DownloadIcon,
   PrinterIcon,
 } from "@/components/ui/icons";
 import { AlbumItem, canPrint } from "@/lib/guest/album";
+import {
+  canShareFiles,
+  downloadMessages,
+  downloadName,
+  isInAppBrowser,
+  signDownload,
+} from "@/lib/guest/download";
 import {
   GalleryPhoto,
   GONE_DELAY_MS,
@@ -51,6 +59,9 @@ interface Props {
   /** The guest's photos with their print state; null until first read. */
   albumItems: AlbumItem[] | null;
   eventId: string;
+  /** For the name of a saved file (SCRUM-59). */
+  eventName: string;
+  eventDate: string | null;
   token: string;
   onPrinted: () => void;
   /** Called once the viewer is gone from the history too. */
@@ -74,6 +85,8 @@ export function PhotoViewer({
   onLoadMore,
   albumItems,
   eventId,
+  eventName,
+  eventDate,
   token,
   onPrinted,
   onClose,
@@ -274,7 +287,9 @@ export function PhotoViewer({
         )}
       </div>
 
-      {current.mine && !gone ? (
+      {gone ? (
+        <Footer arrows={arrows} />
+      ) : current.mine ? (
         <OwnPhotoFooter
           key={current.id}
           photo={current}
@@ -282,10 +297,18 @@ export function PhotoViewer({
           eventId={eventId}
           token={token}
           arrows={arrows}
+          fileName={downloadName(eventName, eventDate, index + 1)}
+          sign={sign}
           onPrinted={onPrinted}
         />
       ) : (
-        <Footer arrows={arrows} />
+        <OtherPhotoFooter
+          key={current.id}
+          photo={current}
+          arrows={arrows}
+          fileName={downloadName(eventName, eventDate, index + 1)}
+          sign={sign}
+        />
       )}
     </div>
   );
@@ -388,6 +411,8 @@ function OwnPhotoFooter({
   eventId,
   token,
   arrows,
+  fileName,
+  sign,
   onPrinted,
 }: {
   photo: GalleryPhoto;
@@ -395,8 +420,11 @@ function OwnPhotoFooter({
   eventId: string;
   token: string;
   arrows: { prev: ReactNode; next: ReactNode };
+  fileName: string;
+  sign: (photo: GalleryPhoto) => Promise<string | null>;
   onPrinted: () => void;
 }) {
+  const download = useDownload(photo, fileName, sign);
   const print = usePrintRequest(photo.id);
   const printable = item !== undefined && canPrint(item);
   const [unavailable, setUnavailable] = useState<string | null>(null);
@@ -463,26 +491,126 @@ function OwnPhotoFooter({
       {print.outcome === "unexpected_error" && (
         <ErrorMessage>{printRequestMessages.unexpected_error}</ErrorMessage>
       )}
+      {printable && (
+        <Button
+          icon={<PrinterIcon size={20} />}
+          onClick={printIt}
+          loading={print.sending}
+          disabled={print.finished || unavailable !== null}
+          className="min-h-12 w-full"
+        >
+          Imprimer
+        </Button>
+      )}
+      {download.message}
     </div>
   );
 
-  return (
-    <Footer
-      arrows={arrows}
-      info={info}
-      center={
-        printable ? (
-          <Button
-            icon={<PrinterIcon size={20} />}
-            onClick={printIt}
-            loading={print.sending}
-            disabled={print.finished || unavailable !== null}
-            className="min-h-12 rounded-full px-5"
-          >
-            Imprimer
-          </Button>
-        ) : undefined
+  return <Footer arrows={arrows} info={info} center={download.button} />;
+}
+
+/** Someone else's photo: only to look at, and to save (SCRUM-59). */
+function OtherPhotoFooter({
+  photo,
+  arrows,
+  fileName,
+  sign,
+}: {
+  photo: GalleryPhoto;
+  arrows: { prev: ReactNode; next: ReactNode };
+  fileName: string;
+  sign: (photo: GalleryPhoto) => Promise<string | null>;
+}) {
+  const download = useDownload(photo, fileName, sign);
+  return <Footer arrows={arrows} info={download.message} center={download.button} />;
+}
+
+/**
+ * "Télécharger" (SCRUM-59, Alison's white button). On a phone that can share
+ * files, the photo is ready beforehand (the image already on screen, from the
+ * cache), so the share sheet opens within the tap, as Safari requires. Else a
+ * one-minute link makes the browser save the file.
+ */
+function useDownload(
+  photo: GalleryPhoto,
+  fileName: string,
+  sign: (photo: GalleryPhoto) => Promise<string | null>
+) {
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<"gone" | "network" | null>(null);
+  const [inApp, setInApp] = useState(false);
+  const client = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    setInApp(isInAppBrowser(navigator.userAgent));
+    if (!canShareFiles()) return;
+    let active = true;
+    sign(photo)
+      .then((url) => (url ? fetch(url) : null))
+      .then((response) => (response?.ok ? response.blob() : null))
+      .then((blob) => {
+        if (!active || !blob) return;
+        setFile(new File([blob], fileName, { type: blob.type || "image/jpeg" }));
+      })
+      .catch(() => {
+        // Not ready: the tap falls back to the download link.
+      });
+    return () => {
+      active = false;
+    };
+    // Once per photo: the footer is keyed by it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function save() {
+    setProblem(null);
+    if (file && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch (error) {
+        // Closed by the guest: nothing to say.
+        if (error instanceof DOMException && error.name === "AbortError") return;
       }
-    />
+    }
+    setBusy(true);
+    const link = await signDownload(client, photo.fullPath, fileName);
+    setBusy(false);
+    if ("error" in link) return setProblem(link.error);
+    const anchor = document.createElement("a");
+    anchor.href = link.url;
+    anchor.download = fileName;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  const button = (
+    <button
+      type="button"
+      onClick={save}
+      disabled={busy}
+      data-share-ready={file ? "true" : "false"}
+      className="inline-flex min-h-12 items-center gap-2 rounded-full bg-surface px-5 text-[15px] font-semibold text-foreground transition-transform active:scale-95 disabled:opacity-60"
+    >
+      <DownloadIcon size={20} />
+      Télécharger
+    </button>
   );
+
+  const message = problem ? (
+    <p
+      role="alert"
+      data-testid="download-problem"
+      className="w-full rounded-2xl bg-surface px-3.5 py-2.5 text-sm font-semibold text-danger"
+    >
+      {downloadMessages[problem]}
+    </p>
+  ) : inApp ? (
+    <p className="text-sm text-surface/80">{downloadMessages.inApp}</p>
+  ) : null;
+
+  return { button, message };
 }

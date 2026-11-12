@@ -253,8 +253,8 @@ export function PhotoPreview({
               label="Ajouter à la galerie de l'événement"
               hint={
                 galleryVisible
-                  ? "Les autres invités pourront la voir."
-                  : "Elle sera visible à l'ouverture de la galerie."
+                  ? "Les autres invités pourront la voir et l'enregistrer."
+                  : "Elle sera visible, et enregistrable, à l'ouverture de la galerie."
               }
               checked={published}
               onChange={setPublished}
