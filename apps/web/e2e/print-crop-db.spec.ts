@@ -24,7 +24,7 @@ async function register(f: Fixture, size: [number, number] | null, zone: Partial
   const result = await db.as("authenticated", f.userId, async (client) =>
     (
       await client.query(
-        "select public.register_photo($1, $2, false, false, $3, $4, $5, $6, $7, $8) as r",
+        "select public.register_photo($1, $2, false, false, $3::int, $4::int, $5::float8, $6::float8, $7::float8, $8::float8) as r",
         [
           photoId,
           f.eventId,
@@ -57,12 +57,37 @@ test("une zone valide est enregistrée avec la taille de la photo", async () => 
   expect(photo.crop_w).toBeCloseTo(zone.w);
 });
 
-test("sans zone (téléphone d'avant), la photo est enregistrée sans", async () => {
+test("téléphone d'avant (ancienne version de register_photo) : photo enregistrée sans zone", async () => {
   const f = await db.seed();
-  const { photoId, result } = await register(f, null, null);
+  const photoId = randomUUID();
+  const result = await db.as("authenticated", f.userId, async (client) =>
+    (await client.query("select public.register_photo($1, $2, false, false) as r", [photoId, f.eventId]))
+      .rows[0].r as { result: string }
+  );
 
-  expect(result).toBe("created");
+  expect(result.result).toBe("created");
   expect((await row(photoId)).crop_w).toBeNull();
+});
+
+test("les deux versions de register_photo ne se confondent jamais", async () => {
+  // PostgREST calls with named arguments: 4 names reach the old version only,
+  // 10 names the new one only.
+  const f = await db.seed();
+  const names = (n: number) =>
+    ["p_photo_id", "p_event_id", "p_published", "p_with_thumb", "p_width", "p_height",
+     "p_crop_x", "p_crop_y", "p_crop_w", "p_crop_h"].slice(0, n);
+  const zone = centerCrop(2048, 1536);
+  const values: unknown[] = [null, f.eventId, false, false, 2048, 1536, zone.x, zone.y, zone.w, zone.h];
+  for (const n of [4, 10]) {
+    values[0] = randomUUID();
+    const casts = ["uuid", "uuid", "boolean", "boolean", "int", "int", "float8", "float8", "float8", "float8"];
+    const args = names(n).map((name, i) => `${name} => $${i + 1}::${casts[i]}`).join(", ");
+    const result = await db.as("authenticated", f.userId, async (client) =>
+      (await client.query(`select public.register_photo(${args}) as r`, values.slice(0, n))).rows[0].r
+    );
+    expect(result.result).toBe("created");
+    expect((await row(values[0] as string)).crop_w === null).toBe(n === 4);
+  }
 });
 
 /**

@@ -4,6 +4,13 @@
 -- rule as its preview, and sends it with the photo's size. The server checks
 -- that it lies inside the photo and has the print's proportions (4:5), then
 -- the agent cuts it out as is. Older photos have no zone: the agent centres.
+--
+-- Nothing is dropped: register_photo gets a second version, with the size and
+-- the zone as required arguments, next to the one in production. Phones still
+-- running the previous page keep calling the old one (photo without zone,
+-- centred by the agent); the new page calls the new one. No call can match
+-- both, so PostgREST never finds them ambiguous. The old version can go in a
+-- later migration, once no phone uses it.
 
 alter table public.photos
   add column width integer,
@@ -26,19 +33,17 @@ alter table public.photos
     )
   );
 
-drop function public.register_photo(uuid, uuid, boolean, boolean);
-
 create function public.register_photo(
   p_photo_id uuid,
   p_event_id uuid,
-  p_published boolean default false,
-  p_with_thumb boolean default false,
-  p_width integer default null,
-  p_height integer default null,
-  p_crop_x double precision default null,
-  p_crop_y double precision default null,
-  p_crop_w double precision default null,
-  p_crop_h double precision default null
+  p_published boolean,
+  p_with_thumb boolean,
+  p_width integer,
+  p_height integer,
+  p_crop_x double precision,
+  p_crop_y double precision,
+  p_crop_w double precision,
+  p_crop_h double precision
 ) returns jsonb
 language plpgsql
 security definer
@@ -60,8 +65,8 @@ begin
     return jsonb_build_object('result', 'refused');
   end if;
 
-  -- The zone: all of it or none (an older phone), inside the photo, and with
-  -- the print's proportions, 4:5 (8 × 10 cm), give or take 1 % of rounding.
+  -- The zone: all of it or none, inside the photo, and with the print's
+  -- proportions, 4:5 (8 × 10 cm), give or take 1 % of rounding.
   v_given := num_nonnulls(p_width, p_height, p_crop_x, p_crop_y, p_crop_w, p_crop_h);
   if v_given not in (0, 6)
     or (v_given = 6 and not (
