@@ -63,3 +63,5 @@
 ## Hors périmètre actuel (v2)
 
 File d'attente automatique et estimation du temps, numéro unique sur la photo ou le cadre, comptes utilisateurs, rejoindre par code, gestion de plusieurs administrateurs, rétention automatique, écran « TV près de l'imprimante ».
+
+**Piste « boîtier d'impression » (après le salon, Germain, 2026-11-12)** : remplacer le Mac par un Raspberry Pi branché en USB à l'imprimante, préconfiguré (« on l'allume, l'imprimante apparaît connectée »). L'agent (Node.js, connexion sortante seulement) et CUPS tournent tels quels sous Linux ; le pilote viendrait de Gutenprint (prise en charge de la DS620 et retour d'état à vérifier en premier). À prévoir : connexion 4G/5G dédiée, stockage résistant aux coupures, rattachement à un événement sans clavier, mises à jour à distance sans port entrant, clé limitée à l'agent à la place de la clé serveur. Premier pas : un essai d'une demi-journée Pi + Gutenprint + DS620.

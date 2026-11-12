@@ -120,6 +120,6 @@ Connu au 2026-11-12 (Germain) : très probablement une **DNP DS620** (à confirm
 
 Encore à obtenir : confirmation du modèle, connexion (USB a priori), brillant ou mat, consommables et coût par tirage, retour d'état disponible via le pilote (fin d'impression, papier ou ruban épuisé, bourrage), accès à l'imprimante pour des essais avant le salon.
 
-Principe d'intégration : préparer une image au bon format, puis la passer au pilote via la file d'impression du système. Le cadre et le numéro de la v2 se feront par composition d'image dans notre code, sans dépendre de l'imprimante.
+Principe d'intégration : préparer une image au bon format, puis la passer au pilote via la file d'impression du système, **CUPS** (`lp` pour envoyer, `lpstat` pour suivre ; décision du 2026-11-12). CUPS est le service d'impression de macOS comme de Linux : le même code servira sur le Mac du salon puis, plus tard, sur un éventuel boîtier Raspberry Pi (voir `02-decisions.md`, v2). Sur le Mac : installer le pilote DNP de la DS620. Le cadre et le numéro de la v2 se feront par composition d'image dans notre code, sans dépendre de l'imprimante.
 
 Le **spike** à réaliser dès que possible : photo envoyée depuis un téléphone → job → agent → tirage sur le matériel réel, avec le statut visible. Mesurer le débit réel sur une série d'au moins dix tirages (l'estimation d'environ 1 min 30 par tirage est à vérifier).
