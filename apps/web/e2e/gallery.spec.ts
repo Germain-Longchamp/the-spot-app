@@ -6,50 +6,10 @@ import {
   mockPhotoBackend,
   TEST_EVENT,
 } from "./support/guest-mocks";
+import { mockGallery, PNG, row } from "./support/gallery-mocks";
 import { GALLERY_PAGE_SIZE } from "../lib/guest/gallery";
 
 const GALLERY = "/e/jeton-de-test/galerie";
-
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-  "base64"
-);
-
-const row = (id: string) => ({
-  id,
-  storage_path: `${TEST_EVENT.id}/someone/${id}.jpg`,
-  thumb_path: `${TEST_EVENT.id}/someone/${id}-thumb.jpg`,
-  is_published: true,
-  is_mine: false,
-});
-
-/** Fakes the gallery view (SCRUM-63) and its files; records what was asked. */
-async function mockGallery(page: Page, ids: string[], options: { missing?: string[] } = {}) {
-  const asked = { queries: [] as string[], signed: [] as string[] };
-
-  await page.route("**/rest/v1/gallery_photos?**", (route) => {
-    const url = new globalThis.URL(route.request().url());
-    asked.queries.push(url.search);
-    const from = Number(url.searchParams.get("offset") ?? 0);
-    const limit = Number(url.searchParams.get("limit") ?? GALLERY_PAGE_SIZE);
-    return json(route, ids.slice(from, from + limit).map(row));
-  });
-  await page.route("**/storage/v1/object/sign/photos", (route) => {
-    const { paths } = route.request().postDataJSON() as { paths: string[] };
-    asked.signed.push(...paths);
-    return json(
-      route,
-      paths.map((path) => ({ path, error: null, signedURL: `/object/sign/photos/${path}?token=t` }))
-    );
-  });
-  await page.route("**/storage/v1/object/sign/photos/**", (route) => {
-    const missing = (options.missing ?? []).some((id) => route.request().url().includes(id));
-    return missing
-      ? route.fulfill({ status: 404, body: "" })
-      : route.fulfill({ status: 200, contentType: "image/png", body: PNG });
-  });
-  return asked;
-}
 
 async function openGallery(page: Page, event: Partial<typeof TEST_EVENT> = {}) {
   await mockGuestBackend(page, {
@@ -164,17 +124,22 @@ test("une photo supprimée pendant la consultation disparaît", async ({ page })
   await expect(thumbs(page)).toHaveCount(1);
 });
 
-test("réseau coupé : message simple et bouton pour réessayer", async ({ page }) => {
+test("réseau coupé dès l'ouverture : message simple, puis reprise seule", async ({ page }) => {
   await openGallery(page);
-  await page.route("**/rest/v1/gallery_photos?**", (route) => route.abort("internetdisconnected"));
+  const asked = await mockGallery(page, ["p1"]);
+  asked.fail = true;
   await page.clock.install();
   await page.goto(GALLERY);
   await expect(page.getByText("Chargement de la galerie…")).toBeVisible();
   // The Supabase client retries a failed read before giving up.
   await page.clock.runFor(60_000);
 
-  await expect(page.getByText("Les photos n'ont pas pu être chargées")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Actualiser" })).toBeVisible();
+  await expect(page.getByText("Connexion perdue, nouvelle tentative…")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Actualiser" })).toHaveCount(0);
+
+  asked.fail = false;
+  await page.clock.runFor(10_000);
+  await expect(thumbs(page)).toHaveCount(1);
 });
 
 test("lien de l'accueil vers la galerie, et retour", async ({ page }) => {
@@ -187,7 +152,7 @@ test("lien de l'accueil vers la galerie, et retour", async ({ page }) => {
   await expect(page).toHaveURL(/\/galerie$/);
   await expect(thumbs(page)).toHaveCount(1);
 
-  await page.getByRole("link", { name: "Retour à l'accueil" }).click();
+  await page.getByRole("link", { name: "Accueil", exact: true }).click();
   await expect(page.getByRole("button", { name: "Prendre une photo" })).toBeVisible();
 });
 

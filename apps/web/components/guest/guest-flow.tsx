@@ -7,7 +7,7 @@ import { EventHome } from "@/components/guest/event-home";
 import { PhotoPreview } from "@/components/guest/photo-preview";
 import { Prints } from "@/components/guest/prints";
 import type { GuestEvent } from "@/lib/guest/enter-event";
-import { countGalleryPhotos } from "@/lib/guest/gallery";
+import { countGalleryPhotos, TAKE_PHOTO_HASH } from "@/lib/guest/gallery";
 import { importPhoto } from "@/lib/guest/import-photo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -32,6 +32,14 @@ export function GuestFlow({ event, guestId, token }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const home = () => setScreen({ name: "home" });
+
+  // "Prendre une photo" from the gallery (SCRUM-54): straight to the camera,
+  // and the hash goes, so a reload lands on the home.
+  useEffect(() => {
+    if (window.location.hash !== `#${TAKE_PHOTO_HASH}`) return;
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+    setScreen({ name: "camera" });
+  }, []);
   const openPrints = () => setScreen({ name: "prints" });
   const openPhoto = (photoId: string) => setScreen({ name: "photo", photoId });
   const galleryHref = `/e/${token}/galerie`;

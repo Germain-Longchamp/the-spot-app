@@ -112,3 +112,11 @@ Décision de Germain du 2026-11-11, après la passation d'Alison (`docs/design/a
 - Calculée par `guest_queue_positions` (security definer) : l'invité n'obtient que des nombres pour ses propres demandes.
 - Position illisible : « En attente de validation par l'équipe ». Réseau coupé : dernier état connu, « Mise à jour impossible pour le moment ». Impressions en pause : « Les impressions reprennent bientôt » (hypothèse à confirmer).
 - Pas de temps d'attente estimé en v1. La maquette d'Alison affiche aussi un grand rang (« 3e dans la file ») : non repris, la phrase dit la même chose.
+
+## Galerie à jour toute seule (SCRUM-54)
+
+- Plus de bouton « Actualiser » : la galerie relit ses photos toutes les 10 s tant que l'onglet est visible (pause onglet caché, relecture dès son retour). Hypothèse à confirmer face à Supabase Realtime (question ouverte n°10).
+- Une photo ne bouge jamais sous le doigt : en haut de page, les nouvelles photos entrent directement ; plus bas, une pastille « 3 nouvelles photos » les annonce, et un appui remonte en haut pour les afficher. Revenir en haut seul a le même effet.
+- Une photo supprimée par l'équipe disparaît à la relecture suivante. Réseau coupé : la grille reste, « Connexion perdue, nouvelle tentative… », reprise automatique.
+- Maquette d'Alison (4-galerie) : retour « Accueil », titre « Galerie » en framboise et nombre de photos, grille 3 colonnes espacées de 6 px, coins de 8 px, pastille « Vous » blanche, bouton flottant « Prendre une photo » qui ouvre la caméra depuis l'accueil (`/e/<jeton>#photo`).
+- « Vous » est calculé par la vue `gallery_photos` (SCRUM-63) : aucun identifiant d'invité n'arrive sur le téléphone.

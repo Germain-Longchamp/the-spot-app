@@ -253,3 +253,26 @@ test("vue galerie : rien pour un invité d'un autre événement ni pour anon", a
     db.as("anon", null, (client) => client.query("select id from public.gallery_photos"))
   ).rejects.toThrow(/permission denied/);
 });
+
+/**
+ * SCRUM-54 — Scenario: Identité des autres jamais exposée
+ *   When je charge la galerie
+ *   Then la réponse ne contient aucun identifiant d'invité
+ */
+test("la vue de galerie n'a aucune colonne d'identité d'invité", async () => {
+  const { rows } = await db.admin.query(
+    `select column_name from information_schema.columns
+     where table_schema = 'public' and table_name = 'gallery_photos' order by ordinal_position`
+  );
+  const columns = rows.map((row) => row.column_name as string);
+  expect(columns).toEqual([
+    "id",
+    "event_id",
+    "storage_path",
+    "thumb_path",
+    "is_published",
+    "created_at",
+    "is_mine",
+  ]);
+  expect(columns.some((name) => name.includes("guest") || name.includes("user"))).toBe(false);
+});

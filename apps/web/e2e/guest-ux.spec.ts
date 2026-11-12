@@ -231,7 +231,7 @@ test("la confirmation mène à la galerie", async ({ page }) => {
   await page.getByRole("link", { name: "Voir la galerie" }).click();
 
   await expect(page).toHaveURL(/\/galerie$/);
-  await expect(page.getByRole("heading", { name: "Galerie de l'événement" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Galerie", exact: true })).toBeVisible();
 });
 
 test("valider sans imprimer, puis imprimer depuis la confirmation", async ({ page }) => {

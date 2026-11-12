@@ -40,7 +40,7 @@
 | 7 | Photo originale conservée, ou seulement l'image compressée ; dimensions cibles | SCRUM-17, 18, 20 | Germain, selon le format d'impression |
 | 8 | Création de l'événement de démo par script (sans écran) | SCRUM-14 | Germain |
 | 9 | Galerie cachée par défaut jusqu'à libération par l'organisateur | SCRUM-14, 32 | Germain |
-| 10 | Mise à jour en direct de la galerie ou rafraîchissement manuel | SCRUM-29 | Germain |
+| 10 | Galerie à jour toute seule (SCRUM-54, sans bouton « Actualiser ») : interrogation toutes les 10 s, onglet visible seulement, plutôt que Supabase Realtime. Hypothèse en place, à confirmer | SCRUM-29, 54 | Germain |
 | 11 | La fermeture d'un événement est-elle réversible avant purge ? | SCRUM-32 | Germain |
 | 12 | L'export contient-il aussi les photos non publiées ? Format des noms de fichiers ? | SCRUM-33 | Germain |
 | 13 | Purge par script ou par écran en v1 ; confirmation par saisie du nom de l'événement | SCRUM-35 | Germain |

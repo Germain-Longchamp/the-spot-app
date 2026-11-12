@@ -151,7 +151,7 @@ test("retour : de ma photo à la galerie, au même endroit", async ({ page }) =>
 
   await page.getByRole("button", { name: "Galerie" }).click();
 
-  await expect(page.getByRole("heading", { name: "Galerie de l'événement" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Galerie", exact: true })).toBeVisible();
   await expect(myTiles(page)).toHaveCount(2);
 });
 
