@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { PhotoDetail, useAlbum } from "@/components/guest/album";
+import { createPortal } from "react-dom";
+import { useAlbum } from "@/components/guest/album";
+import { PhotoViewer } from "@/components/guest/photo-viewer";
+import type { AlbumItem } from "@/lib/guest/album";
 import { Button } from "@/components/ui/button";
-import { ErrorMessage } from "@/components/ui/error-message";
 import { ArrowLeftIcon, ArrowUpIcon, CameraIcon, GiftIcon } from "@/components/ui/icons";
 import { Logo } from "@/components/ui/logo";
 import type { GuestEvent } from "@/lib/guest/enter-event";
@@ -18,7 +20,7 @@ import {
   loadGalleryState,
   loadGalleryRows,
   newPhotosText,
-  signFullImage,
+  PHOTO_PARAM,
   TAKE_PHOTO_HASH,
   toGalleryPhotos,
 } from "@/lib/guest/gallery";
@@ -33,8 +35,8 @@ interface Props {
 /**
  * The one way to every photo (SCRUM-63): what the other guests shared when
  * the gallery is open, and all of this guest's own photos, whatever the
- * gallery state. A guest's own photo opens with its print tracking, or the
- * way to print it. Kept fresh on its own (SCRUM-54).
+ * gallery state. Every photo opens in the same viewer (SCRUM-55), the
+ * guest's own with their print state. Kept fresh on its own (SCRUM-54).
  */
 export function Gallery({ event, token, guestId }: Props) {
   // The team may open the gallery meanwhile (SCRUM-56): read again on the
@@ -60,42 +62,39 @@ export function Gallery({ event, token, guestId }: Props) {
   const open = state.enabled && state.visible;
   const closed = state.enabled && !state.visible;
   const album = useAlbum(event.id, guestId, true);
-  const [mineOpened, setMineOpened] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
-  const detail = mineOpened
-    ? album.items?.find((item) => item.photoId === mineOpened)
-    : undefined;
+
+  // A photo left in the address by a reload: the grid comes first.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has(PHOTO_PARAM)) {
+      history.replaceState(history.state, "", window.location.pathname);
+    }
+  }, []);
 
   // The grid is hidden under the photo, so the browser forgets where it was:
   // kept here, the photo opens at the top and the grid comes back in place.
+  const [viewing, setViewingState] = useState(false);
   const gridScroll = useRef(0);
-  const openMine = (photoId: string) => {
-    gridScroll.current = window.scrollY;
-    setMineOpened(photoId);
-  };
-  const showing = Boolean(detail);
+  const setViewing = useCallback((next: boolean) => {
+    if (next) gridScroll.current = window.scrollY;
+    setViewingState(next);
+  }, []);
   useLayoutEffect(() => {
-    window.scrollTo({ top: showing ? 0 : gridScroll.current });
-  }, [showing]);
+    const top = viewing ? 0 : gridScroll.current;
+    window.scrollTo({ top });
+    // Next.js moves the page back to the top after the phone's "back" (the
+    // address changes): once more when it is done.
+    const frame = requestAnimationFrame(() => window.scrollTo({ top }));
+    return () => cancelAnimationFrame(frame);
+  }, [viewing]);
 
   return (
     <>
-      {detail && (
-        <PhotoDetail
-          key={detail.photoId}
-          item={detail}
-          eventId={event.id}
-          backLabel="Galerie"
-          onBack={() => setMineOpened(null)}
-          onPrinted={album.refresh}
-        />
-      )}
-
-      {/* Kept mounted under the detail: loaded pages and scroll survive. */}
+      {/* Kept mounted under the viewer: loaded pages and scroll survive. */}
       {/* A class, not the hidden attribute: "flex" would override it (SCRUM-64). */}
       <main
         data-testid="gallery-screen"
-        className={`${detail ? "hidden" : "flex"} mx-auto min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-3.5 px-4 pb-32 pt-4`}
+        className={`${viewing ? "hidden" : "flex"} mx-auto min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-3.5 px-4 pb-32 pt-4`}
       >
         <header className="flex min-h-11 items-center justify-between gap-3">
           <Link
@@ -150,19 +149,15 @@ export function Gallery({ event, token, guestId }: Props) {
           eventId={event.id}
           open={open}
           onCount={setCount}
-          onOpenMine={(photo) => {
-            // The print state of the guest's photos may not be read yet: the
-            // plain viewer is shown meanwhile.
-            if (album.items?.some((item) => item.photoId === photo.id)) {
-              openMine(photo.id);
-              return true;
-            }
-            return false;
-          }}
+          count={count}
+          albumItems={album.items}
+          onPrinted={album.refresh}
+          token={token}
+          onViewing={setViewing}
         />
       </main>
 
-      {!detail && (
+      {!viewing && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 pb-[max(1.75rem,env(safe-area-inset-bottom))]">
           <div className="pointer-events-auto mx-auto max-w-2xl px-4">
             <Link
@@ -187,13 +182,21 @@ function GalleryGrid({
   eventId,
   open,
   onCount,
-  onOpenMine,
+  count,
+  albumItems,
+  onPrinted,
+  token,
+  onViewing,
 }: {
   eventId: string;
   open: boolean;
   onCount: (count: number) => void;
-  /** Opens one of the guest's own photos; false if it cannot yet. */
-  onOpenMine: (photo: GalleryPhoto) => boolean;
+  count: number | null;
+  albumItems: AlbumItem[] | null;
+  onPrinted: () => void;
+  token: string;
+  /** The viewer opens or closes: the rest of the page hides or comes back. */
+  onViewing: (viewing: boolean) => void;
 }) {
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   /** Arrived while the guest was further down: shown on demand. */
@@ -204,6 +207,8 @@ function GalleryGrid({
   const [loaded, setLoaded] = useState(false);
   const [offline, setOffline] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
+  const viewingRef = useRef(false);
+  viewingRef.current = opened !== null;
   const supabase = useRef(createClient());
   const shown = useRef<GalleryPhoto[]>([]);
   const held = useRef<GalleryPhoto[]>([]);
@@ -275,7 +280,8 @@ function GalleryGrid({
       const next = [...arrived, ...stillWaiting];
       held.current = next;
       setWaiting(next);
-      if (atTop()) reveal();
+      // Never while a photo is shown large: its counter must not move.
+      if (atTop() && !viewingRef.current) reveal();
     } finally {
       busy.current = false;
     }
@@ -300,10 +306,22 @@ function GalleryGrid({
   // Back at the top by themselves: the waiting photos come in.
   useEffect(() => {
     if (!waiting.length) return;
-    const onScroll = () => atTop() && reveal();
+    const onScroll = () => atTop() && !viewingRef.current && reveal();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [waiting.length, reveal]);
+
+  const view = (photoId: string | null) => {
+    setOpened(photoId);
+    onViewing(photoId !== null);
+  };
+  const closeViewer = useCallback(() => {
+    setOpened(null);
+    onViewing(false);
+    // Photos that arrived meanwhile come in if the grid is back at the top,
+    // once its place is restored (two frames, see Gallery).
+    requestAnimationFrame(() => requestAnimationFrame(() => atTop() && reveal()));
+  }, [onViewing, reveal]);
 
   /** A photo removed while someone looks at the gallery just disappears. */
   const forget = (id: string) =>
@@ -354,9 +372,7 @@ function GalleryGrid({
             <button
               type="button"
               data-testid="gallery-photo"
-              onClick={() => {
-                if (!(photo.mine && onOpenMine(photo))) setOpened(photo.fullPath);
-              }}
+              onClick={() => view(photo.id)}
               className="block w-full"
               aria-label={photo.mine ? "Ouvrir votre photo" : "Agrandir la photo"}
             >
@@ -398,53 +414,22 @@ function GalleryGrid({
         </Button>
       )}
 
-      {opened && <Viewer path={opened} onClose={() => setOpened(null)} />}
-    </div>
-  );
-}
-
-function Viewer({ path, onClose }: { path: string; onClose: () => void }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    signFullImage(createClient(), path).then((signed) => {
-      if (!active) return;
-      if (signed) setUrl(signed);
-      else setFailed(true);
-    });
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      active = false;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [path, onClose]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Photo agrandie"
-      className="fixed inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/95 p-4"
-    >
-      {url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url}
-          alt="Photo agrandie"
-          onError={() => setFailed(true)}
-          className="max-h-[80vh] max-w-full rounded-lg object-contain"
-        />
-      )}
-      {!url && !failed && (
-        <p role="status" className="text-muted">
-          Chargement de la photo…
-        </p>
-      )}
-      {failed && <ErrorMessage>Cette photo n&apos;est plus disponible.</ErrorMessage>}
-      <Button onClick={onClose}>Fermer</Button>
+      {opened &&
+        createPortal(
+          <PhotoViewer
+            photos={photos}
+            startId={opened}
+            total={count}
+            more={more}
+            onLoadMore={() => !loading && load(page + 1)}
+            albumItems={albumItems}
+            eventId={eventId}
+            token={token}
+            onPrinted={onPrinted}
+            onClose={closeViewer}
+          />,
+          document.body
+        )}
     </div>
   );
 }

@@ -100,7 +100,7 @@ test("agrandir une photo puis la fermer", async ({ page }) => {
   await expect(viewer.getByRole("img", { name: "Photo agrandie" })).toBeVisible();
   expect(asked.signed).toContain(row("p1").storage_path);
 
-  await viewer.getByRole("button", { name: "Fermer" }).click();
+  await viewer.getByRole("button", { name: "Galerie" }).click();
   await expect(viewer).toHaveCount(0);
 });
 

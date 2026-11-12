@@ -25,7 +25,7 @@ import { createClient } from "@/lib/supabase/client";
 export const ALBUM_POLL_INTERVAL_MS = 5_000;
 
 /** Short labels for the badges; the detail shows the full sentence. */
-const badge: Record<PrintJobStatus | "NONE", { text: string; tone: string }> = {
+export const printBadge: Record<PrintJobStatus | "NONE", { text: string; tone: string }> = {
   DONE: { text: "Prête à récupérer", tone: "bg-success text-surface" },
   STUCK: { text: "Un souci : voyez l'équipe", tone: "bg-danger text-surface" },
   FAILED: { text: "Un souci : voyez l'équipe", tone: "bg-danger text-surface" },
@@ -69,7 +69,7 @@ export function useAlbum(eventId: string, guestId: string, enabled: boolean) {
 }
 
 function StatusBadge({ item }: { item: AlbumItem }) {
-  const { text, tone } = badge[item.print?.status ?? "NONE"];
+  const { text, tone } = printBadge[item.print?.status ?? "NONE"];
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>
       {text}
