@@ -143,3 +143,15 @@ Maquette d'Alison (5-photo-en-grand), retouchée par la recette de Germain du 20
 - Photo d'un autre invité : ni « Imprimer » ni état d'impression.
 - « Télécharger » (SCRUM-59) : bouton blanc au centre, pour toutes les photos ; sur une photo de l'invité à imprimer, « Imprimer » passe au-dessus, sur toute la largeur. Sur un téléphone qui sait partager des fichiers, la feuille de partage s'ouvre avec la photo (« Enregistrer l'image »), préparée dès l'affichage pour s'ouvrir dans le geste, comme l'exige Safari ; sinon un lien signé d'une minute fait enregistrer le fichier `<événement>-<date>-<rang>.jpg` (rien sur l'invité). Feuille refermée : rien. Photo supprimée : « Cette photo n'est plus disponible. » Réseau coupé : « Téléchargement impossible pour le moment, réessayez. » Navigateur d'Instagram, Facebook… : « Si rien ne se passe, appuyez longuement sur la photo pour l'enregistrer. »
 - Information au moment de partager (écran « Votre photo ») : « Les autres invités pourront la voir et l'enregistrer. » (galerie fermée : « Elle sera visible, et enregistrable, à l'ouverture de la galerie. »).
+
+## Tirage façon Polaroid (SCRUM-65)
+
+Décision de Germain du 2026-11-12 : un seul format en v1.
+
+- Papier « 10 × 15 » (en pratique 4 × 6 pouces, 101,6 × 152,4 mm) en hauteur. Photo de 8 × 10 cm (4:5) à 1 cm du haut, centrée (bords de 10,8 mm sur les côtés), bande blanche d'environ 4,2 cm en bas, vide en v1 (textes : SCRUM-60, 61, 62). Les nombres sont dans `apps/web/lib/print/layout.ts`, copié dans l'agent (un test vérifie qu'ils sont identiques).
+- Caméra : viseur toujours vertical en 4:5, le reste de l'écran noir, « Ce qui est dans le cadre sera imprimé ». La photo prise est exactement le cadre.
+- Import : recadrage centré automatique en 4:5 (une photo en paysage perd ses côtés). Pas de réglage manuel en v1.
+- Aperçu (« Votre photo ») : la page blanche du tirage, la photo recadrée dans sa fenêtre, la bande du bas vide.
+- La photo stockée reste entière ; la zone gardée (relative, x, y, largeur, hauteur) est enregistrée avec elle et vérifiée par le serveur. L'agent la découpe, la pose sur la page blanche et l'imprime. Une page impossible à composer passe en souci pour l'équipe : jamais de tirage sans cadre.
+- Galerie, vue en grand et téléchargement : la photo entière, sans cadre.
+- Photo trop petite : imprimée quand même, sans avertissement (on verra selon les retours). Couleurs : à ajuster après les tirages tests.

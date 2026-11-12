@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MyPrints } from "@/components/guest/my-prints";
 import { Screen } from "@/components/guest/screen";
+import { PrintPreview } from "@/components/guest/print-preview";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
@@ -279,10 +280,7 @@ export function PhotoPreview({
   );
 }
 
-/**
- * The photo, framed like a print: what the guest is about to get. With fit,
- * it takes the room left by the bar and shrinks to it, never cropped.
- */
+/** The print as it will come out (SCRUM-65), small or filling the room left. */
 function Polaroid({
   src,
   small = false,
@@ -292,35 +290,7 @@ function Polaroid({
   small?: boolean;
   fit?: boolean;
 }) {
-  if (fit) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        {/* The frame is the image's own padding: it hugs the photo whatever
-            its shape. A local blob: nothing for an image optimizer to do. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt="Votre photo"
-          className="max-h-full max-w-full rounded-2xl bg-surface object-contain p-2 pb-5 shadow-lift"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`mx-auto w-full rounded-2xl bg-surface p-3 pb-8 shadow-lift ${
-        small ? "max-w-44" : "max-w-sm"
-      }`}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt="Votre photo"
-        className="max-h-[52dvh] w-full rounded-lg object-contain"
-      />
-    </div>
-  );
+  return <PrintPreview src={src} fit={fit} maxWidth={small ? "11rem" : "24rem"} />;
 }
 
 function SendingView({

@@ -1,0 +1,8 @@
+{
+  // The app only, for `next build` (local, CI and Vercel). The Playwright
+  // tests borrow the print agent's packages (sharp, SCRUM-65), which Vercel
+  // does not install: `npm run type-check` keeps checking them with
+  // tsconfig.json.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "e2e", "playwright.config.ts"]
+}

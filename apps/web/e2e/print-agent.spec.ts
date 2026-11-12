@@ -143,6 +143,8 @@ function workerDeps(
     log: { info: (m) => logs.push(m), error: (m) => logs.push(m) },
     sleep: async () => undefined,
     printOptions: { copies: 1 },
+    // The page itself is tested in print-layout.spec.ts: here, as is.
+    compose: async (image) => image,
     activeJob: { current: null },
     shouldStop: () => false,
     downloadAttempts: 3,
@@ -639,7 +641,8 @@ test.describe("connexion à Supabase", () => {
       },
     });
 
-    expect(await new SupabaseJobStore(client, config).claim()).toEqual(job);
+    // No zone sent: an older photo, centred by the agent (SCRUM-65).
+    expect(await new SupabaseJobStore(client, config).claim()).toEqual({ ...job, crop: null });
     expect(rpcCalls[0]).toEqual({
       fn: "claim_print_job",
       args: { p_event_id: "e1", p_agent_id: "a1" },

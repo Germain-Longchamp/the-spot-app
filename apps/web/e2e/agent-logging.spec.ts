@@ -134,6 +134,8 @@ test("un job en échec est journalisé avec le job et le motif, sans chemin de p
     log,
     sleep: async () => {},
     printOptions: { copies: 1 },
+    // The page itself is tested in print-layout.spec.ts: here, as is.
+    compose: async (image) => image,
     activeJob: { current: null },
     shouldStop: () => false,
     downloadAttempts: 1,

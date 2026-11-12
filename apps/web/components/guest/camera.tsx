@@ -5,6 +5,7 @@ import { Screen } from "@/components/guest/screen";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { CloseIcon, ImageIcon, SwitchCameraIcon } from "@/components/ui/icons";
+import { centerCrop, PHOTO_RATIO } from "@/lib/print/layout";
 
 type Facing = "environment" | "user";
 type CameraState = "starting" | "ready" | "denied" | "unavailable" | "busy";
@@ -88,10 +89,18 @@ export function Camera({ onCapture, onCancel, onImport }: Props) {
     const source = video.current;
     if (!source?.videoWidth) return;
 
+    // Only what the frame shows (SCRUM-65): the middle of the video in 4:5,
+    // as the frame displays it with object-cover.
+    const { videoWidth: width, videoHeight: height } = source;
+    const zone = centerCrop(width, height);
+    const sx = Math.round(zone.x * width);
+    const sy = Math.round(zone.y * height);
+    const sw = Math.round(zone.w * width);
+    const sh = Math.round(zone.h * height);
     const canvas = document.createElement("canvas");
-    canvas.width = source.videoWidth;
-    canvas.height = source.videoHeight;
-    canvas.getContext("2d")?.drawImage(source, 0, 0);
+    canvas.width = sw;
+    canvas.height = sh;
+    canvas.getContext("2d")?.drawImage(source, sx, sy, sw, sh, 0, 0, sw, sh);
     setFlash((count) => count + 1);
     canvas.toBlob(
       (photo) => {
@@ -125,16 +134,29 @@ export function Camera({ onCapture, onCancel, onImport }: Props) {
   return (
     <main className="fixed inset-0 flex flex-col bg-black text-white">
       <div className="relative min-h-0 flex-1">
-        <video
-          ref={video}
-          autoPlay
-          muted
-          playsInline
-          aria-label="Aperçu de la caméra"
-          className={`size-full object-cover ${
-            facing === "user" ? "-scale-x-100" : ""
-          }`}
-        />
+        {/* The frame of the print (SCRUM-65): always upright, 4:5, the rest
+            dark. What is inside is what will be printed. */}
+        <div className="absolute inset-0 flex items-center justify-center [container-type:size]">
+          <div
+            data-testid="camera-frame"
+            className="relative overflow-hidden rounded-sm ring-1 ring-white/50"
+            style={{
+              width: `min(100cqw, calc(100cqh * ${PHOTO_RATIO}))`,
+              aspectRatio: `${PHOTO_RATIO}`,
+            }}
+          >
+            <video
+              ref={video}
+              autoPlay
+              muted
+              playsInline
+              aria-label="Aperçu de la caméra"
+              className={`size-full object-cover ${
+                facing === "user" ? "-scale-x-100" : ""
+              }`}
+            />
+          </div>
+        </div>
         {state === "starting" && (
           <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-lg">
             Autorisez la caméra pour prendre votre photo.
@@ -179,7 +201,7 @@ export function Camera({ onCapture, onCancel, onImport }: Props) {
         >
           <span className="size-[60px] rounded-full bg-white" />
         </button>
-        <p className="text-sm text-white/80">Cadrez, puis appuyez sur le bouton</p>
+        <p className="text-sm text-white/80">Ce qui est dans le cadre sera imprimé</p>
       </div>
     </main>
   );

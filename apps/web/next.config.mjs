@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // The app's files only: see tsconfig.build.json.
+  typescript: { tsconfigPath: "tsconfig.build.json" },
   // The operator link is a secret: keep it out of Referer headers, search
   // engines and caches.
   async headers() {

@@ -1,4 +1,5 @@
 import type { Logger } from "./logger";
+import type { CropZone } from "./layout";
 import type { Printer, PrintOptions } from "./printer";
 
 export type { Logger } from "./logger";
@@ -7,6 +8,8 @@ export interface ClaimedJob {
   jobId: string;
   attempt: number;
   storagePath: string;
+  /** The zone kept on the phone (SCRUM-65); null for older photos. */
+  crop?: CropZone | null;
 }
 
 export type JobReport = "DONE" | "FAILED";
@@ -33,6 +36,8 @@ export interface WorkerDeps {
   log: Logger;
   sleep: (ms: number) => Promise<void>;
   printOptions: PrintOptions;
+  /** Builds the page sent to the printer from the photo (SCRUM-65). */
+  compose: (image: Buffer, job: ClaimedJob) => Promise<Buffer>;
   /** The job being worked on right now, read by the heartbeat. */
   activeJob: { current: ClaimedJob | null };
   /** Tells the report loop to give up, so that the process can stop. */
@@ -44,7 +49,7 @@ export interface WorkerDeps {
 
 export type JobOutcome = "idle" | "done" | "failed" | "abandoned";
 
-/** Sizes and margins depend on the paper, unknown until SCRUM-26. */
+/** An empty download is a missing photo, not a page to print. */
 function prepareImage(image: Buffer): Buffer {
   if (image.length === 0) {
     throw new ImageUnavailableError("Image vide");
@@ -156,9 +161,23 @@ async function handleJob(
     return "abandoned";
   }
 
+  // The Polaroid page (SCRUM-65). A photo that cannot be laid out goes to the
+  // team as a failure: never printed without its frame, in silence.
+  let page: Buffer;
+  try {
+    page = await deps.compose(image, job);
+  } catch (error) {
+    deps.log.error(`job ${job.jobId}: mise en page impossible`, {
+      jobId: job.jobId,
+      reason: error instanceof Error ? error.message : undefined,
+    });
+    await reportResult(deps, job, "FAILED", "Mise en page impossible");
+    return "failed";
+  }
+
   let result;
   try {
-    result = await deps.printer.print(image, deps.printOptions);
+    result = await deps.printer.print(page, deps.printOptions);
   } catch {
     result = { ok: false as const, reason: "Erreur de l'imprimante" };
   }

@@ -304,8 +304,8 @@ test("sans réglage particulier, les écrans arrivent en douceur", async ({ page
  *   When j'arrive sur "Votre photo"
  *   Then je vois sans faire défiler l'état de l'imprimante, l'interrupteur
  *   "Ajouter à la galerie", "Imprimer" et "Valider sans imprimer"
- * Scenario: Photo entière
- *   Then la photo est affichée en entier, sans recadrage
+ * SCRUM-65 (remplace « Photo entière » de SCRUM-52) : la photo est montrée
+ *   comme sur le tirage, recadrée en 4:5 dans le cadre Polaroid
  */
 for (const viewport of [
   { width: 320, height: 568 },
@@ -337,10 +337,12 @@ for (const viewport of [
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     expect(overflow).toBe(false);
 
-    // Whole photo: shown at its own proportions, never cropped.
-    expect(await photo.evaluate((img) => getComputedStyle(img).objectFit)).toBe("contain");
+    // As on the print (SCRUM-65): the 4:5 window of the Polaroid page.
+    expect(await photo.evaluate((img) => getComputedStyle(img).objectFit)).toBe("cover");
+    await inView(page, page.getByTestId("print-page"));
     const box = (await photo.boundingBox())!;
     expect(box.height).toBeGreaterThan(80);
+    expect(box.width / box.height).toBeCloseTo(0.8, 2);
   });
 }
 

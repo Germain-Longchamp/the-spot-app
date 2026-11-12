@@ -80,7 +80,8 @@ test("nouvelles photos pendant le défilement : pastille, puis en tête", async 
   await expect(pill(page)).toHaveText("3 nouvelles photos");
   // Nothing moved under the finger.
   expect(await idOf(page, 0)).toBe(first);
-  expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+  // A pixel of rounding is no jump (CI, 2026-11-12: 437 for 438).
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrolled)).toBeLessThanOrEqual(2);
   await expect(thumbs(page)).toHaveCount(24);
 
   await pill(page).click();
