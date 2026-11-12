@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PhotoDetail, useAlbum } from "@/components/guest/album";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
@@ -66,6 +66,18 @@ export function Gallery({ event, token, guestId }: Props) {
     ? album.items?.find((item) => item.photoId === mineOpened)
     : undefined;
 
+  // The grid is hidden under the photo, so the browser forgets where it was:
+  // kept here, the photo opens at the top and the grid comes back in place.
+  const gridScroll = useRef(0);
+  const openMine = (photoId: string) => {
+    gridScroll.current = window.scrollY;
+    setMineOpened(photoId);
+  };
+  const showing = Boolean(detail);
+  useLayoutEffect(() => {
+    window.scrollTo({ top: showing ? 0 : gridScroll.current });
+  }, [showing]);
+
   return (
     <>
       {detail && (
@@ -80,9 +92,10 @@ export function Gallery({ event, token, guestId }: Props) {
       )}
 
       {/* Kept mounted under the detail: loaded pages and scroll survive. */}
+      {/* A class, not the hidden attribute: "flex" would override it (SCRUM-64). */}
       <main
-        hidden={Boolean(detail)}
-        className="mx-auto flex min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-3.5 px-4 pb-32 pt-4"
+        data-testid="gallery-screen"
+        className={`${detail ? "hidden" : "flex"} mx-auto min-h-[100dvh] max-w-2xl animate-screen-in flex-col gap-3.5 px-4 pb-32 pt-4`}
       >
         <header className="flex min-h-11 items-center justify-between gap-3">
           <Link
@@ -141,7 +154,7 @@ export function Gallery({ event, token, guestId }: Props) {
             // The print state of the guest's photos may not be read yet: the
             // plain viewer is shown meanwhile.
             if (album.items?.some((item) => item.photoId === photo.id)) {
-              setMineOpened(photo.id);
+              openMine(photo.id);
               return true;
             }
             return false;

@@ -155,6 +155,48 @@ test("retour : de ma photo à la galerie, au même endroit", async ({ page }) =>
   await expect(myTiles(page)).toHaveCount(2);
 });
 
+/**
+ * SCRUM-64 — Scenario: Seule la photo est affichée
+ *   Given je suis sur la Galerie avec une de mes photos
+ *   When je l'ouvre
+ *   Then je vois "Votre photo"
+ *   And la grille de la Galerie n'est pas visible
+ */
+test("ma photo ouverte : la grille de la galerie n'est plus affichée dessous", async ({ page }) => {
+  await mockAlbum(page, { photos: [{ id: "a" }, { id: "b" }] });
+  await openMyPhoto(page);
+
+  await expect(page.getByTestId("gallery-screen")).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Galerie", exact: true })).toBeHidden();
+  await expect(myTiles(page).first()).toBeHidden();
+});
+
+/**
+ * SCRUM-64 — Scenario: Retour à la même position
+ *   Given j'ai fait défiler la Galerie puis ouvert une de mes photos
+ *   When je touche "Galerie"
+ *   Then je retrouve la grille à la même position
+ */
+test("retour de ma photo : la grille revient à la même position", async ({ page }) => {
+  const photos = Array.from({ length: 30 }, (_, i) => ({ id: `p${i}` }));
+  await mockAlbum(page, { photos });
+  await mockGuestBackend(page, { event: { gallery_enabled: true, gallery_visible: true } });
+  await page.goto(GALLERY);
+  await expect(myTiles(page)).toHaveCount(30);
+
+  await myTiles(page).last().scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => window.scrollY);
+  expect(before).toBeGreaterThan(200);
+  await myTiles(page).last().click();
+  await expect(page.getByRole("heading", { name: "Votre photo" })).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  await page.getByRole("button", { name: "Galerie" }).click();
+
+  await expect(myTiles(page).last()).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+});
+
 test("seules mes photos de cet événement servent au suivi", async ({ page }) => {
   const album = await mockAlbum(page, { photos: [{ id: "a" }] });
   await openHome(page);
