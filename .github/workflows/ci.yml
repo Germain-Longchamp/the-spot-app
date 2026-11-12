@@ -30,8 +30,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: |
+            apps/web/package-lock.json
+            apps/print-agent/package-lock.json
       - run: npm ci
+      # The tests check the agent's page composition with its own sharp
+      # (SCRUM-65): its packages must be there before the types and tests.
+      - run: npm ci
+        working-directory: apps/print-agent
       - run: npm run lint
       - run: npm run type-check
       - run: npm run build

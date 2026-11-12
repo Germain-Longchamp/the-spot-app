@@ -1,3 +1,4 @@
+import type { CropZone } from "./layout";
 import {
   ClaimedJob,
   ImageUnavailableError,
@@ -51,6 +52,16 @@ export interface StoreConfig {
 
 const SIGNED_URL_SECONDS = 60;
 
+/** The zone as the server sends it, or null if absent or incomplete. */
+function toCrop(value: unknown): CropZone | null {
+  if (!value || typeof value !== "object") return null;
+  const { x, y, w, h } = value as Record<string, unknown>;
+  const numbers = [x, y, w, h].map(Number);
+  return numbers.every(Number.isFinite)
+    ? { x: numbers[0], y: numbers[1], w: numbers[2], h: numbers[3] }
+    : null;
+}
+
 export class SupabaseJobStore implements JobStore {
   constructor(
     private readonly client: SupabaseLike,
@@ -69,6 +80,7 @@ export class SupabaseJobStore implements JobStore {
       jobId: data.job_id as string,
       attempt: data.attempt as number,
       storagePath: data.storage_path as string,
+      crop: toCrop(data.crop),
     };
   }
 

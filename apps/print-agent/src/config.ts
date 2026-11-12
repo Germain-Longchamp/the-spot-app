@@ -12,6 +12,8 @@ export interface AgentConfig {
   simulatedOutcome: "success" | "failure";
   /** Folder of the local log file, kept on the salon computer. */
   logDir: string;
+  /** The printer driver takes the page lying down (to set with SCRUM-26). */
+  pageLandscape: boolean;
 }
 
 type Env = Record<string, string | undefined>;
@@ -37,5 +39,6 @@ export function loadConfig(env: Env): AgentConfig {
     simulatedOutcome:
       env.SIMULATED_PRINTER_OUTCOME === "failure" ? "failure" : "success",
     logDir: env.LOG_DIR || "logs",
+    pageLandscape: env.PRINT_PAGE_LANDSCAPE === "true",
   };
 }

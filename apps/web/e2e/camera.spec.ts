@@ -29,9 +29,9 @@ const failCameraWith = (page: Page, name: string) =>
 /**
  * Scenario: Permission accordée
  *   When je choisis "Prendre une photo" et j'autorise la caméra
- *   Then le flux caméra s'affiche en plein écran
+ *   Then le flux caméra s'affiche en grand, dans le cadre du tirage (SCRUM-65)
  */
-test("le flux caméra s'affiche en plein écran", async ({ page }) => {
+test("le flux caméra s'affiche en grand, dans le cadre du tirage", async ({ page }) => {
   await openCamera(page);
 
   const video = page.getByLabel("Aperçu de la caméra");
@@ -40,8 +40,12 @@ test("le flux caméra s'affiche en plein écran", async ({ page }) => {
     .poll(() => video.evaluate((v: HTMLVideoElement) => v.videoWidth))
     .toBeGreaterThan(0);
 
-  const box = await video.boundingBox();
-  expect(box?.width).toBe(page.viewportSize()?.width);
+  // The video fills the 4:5 frame, as tall as the screen allows.
+  const box = (await video.boundingBox())!;
+  const frame = (await page.getByTestId("camera-frame").boundingBox())!;
+  expect(box).toEqual(frame);
+  expect(frame.width / frame.height).toBeCloseTo(0.8, 2);
+  expect(frame.height).toBeGreaterThan(page.viewportSize()!.height / 2);
 });
 
 /**

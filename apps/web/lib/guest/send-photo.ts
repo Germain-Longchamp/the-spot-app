@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { targetSize, THUMB_SIDE_PX } from "@/lib/guest/photo-size";
+import { centerCrop } from "@/lib/print/layout";
 
 /** Provisional: the real value depends on the printer's paper (SCRUM-26). */
 const JPEG_QUALITY = 0.85;
@@ -14,6 +15,15 @@ export async function compressPhoto(
   maxSide?: number,
   quality = JPEG_QUALITY
 ): Promise<Blob> {
+  return (await compressPhotoSized(photo, maxSide, quality)).blob;
+}
+
+/** The compressed photo and its size, upright (EXIF already applied). */
+export async function compressPhotoSized(
+  photo: Blob,
+  maxSide?: number,
+  quality = JPEG_QUALITY
+): Promise<{ blob: Blob; width: number; height: number }> {
   const bitmap = await createImageBitmap(photo);
   const { width, height } = targetSize(bitmap.width, bitmap.height, maxSide);
 
@@ -25,7 +35,8 @@ export async function compressPhoto(
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("compression"))),
+      (blob) =>
+        blob ? resolve({ blob, width, height }) : reject(new Error("compression")),
       "image/jpeg",
       quality
     );
@@ -80,6 +91,11 @@ interface SendOptions {
 
 export type SendResult = "sent" | "failed" | "event_closed";
 
+function cropParams(width: number, height: number) {
+  const zone = centerCrop(width, height);
+  return { p_crop_x: zone.x, p_crop_y: zone.y, p_crop_w: zone.w, p_crop_h: zone.h };
+}
+
 /**
  * Safe to call again after a failure: the photo id is fixed by the caller, so
  * the file path and the database row can only ever exist once.
@@ -89,10 +105,13 @@ export async function sendPhoto(options: SendOptions): Promise<SendResult> {
   const path = `${eventId}/${guestId}/${photoId}.jpg`;
 
   let compressed: Blob;
+  let size: { width: number; height: number };
   // Only a published photo appears in the gallery, so only it needs a thumbnail.
   let thumb: Blob | null = null;
   try {
-    compressed = await compressPhoto(photo);
+    const sized = await compressPhotoSized(photo);
+    compressed = sized.blob;
+    size = { width: sized.width, height: sized.height };
     if (options.published) {
       thumb = await compressPhoto(photo, THUMB_SIDE_PX, THUMB_QUALITY);
     }
@@ -131,6 +150,12 @@ export async function sendPhoto(options: SendOptions): Promise<SendResult> {
         p_event_id: eventId,
         p_published: options.published,
         p_with_thumb: thumb !== null,
+        // The part kept for the print (SCRUM-65), by the same rule as the
+        // preview: the whole of a photo from the app's camera (already 4:5),
+        // the middle of an imported one.
+        p_width: size.width,
+        p_height: size.height,
+        ...cropParams(size.width, size.height),
       });
       if (error) continue;
       if (registered?.result === "event_closed") return "event_closed";
