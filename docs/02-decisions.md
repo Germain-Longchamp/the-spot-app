@@ -26,6 +26,7 @@
 | Galerie : deux réglages | `gallery_enabled` : l'événement a une galerie, l'invité peut publier ; `gallery_visible` : la galerie est ouverte et consultable. Une photo publiée galerie fermée apparaît à l'ouverture (SCRUM-28, à confirmer par Germain) |
 | Une seule entrée « Galerie » | Plus de « Mes photos » : la Galerie montre les photos partagées (galerie ouverte) et toutes celles de l'invité ; une photo non partagée n'est visible que de son auteur, marquée « Non partagée ». Case « Ajouter à la galerie » **cochée par défaut**, décochable (Germain, 2026-11-11, SCRUM-63) |
 | Photo en grand | Une seule visionneuse pour toutes les photos ; sur les photos de l'invité, l'état d'impression en pastille vers « Vos tirages », sans suivi en étapes ; le retour du téléphone ramène à la grille (Germain, 2026-11-12, SCRUM-55) |
+| Format des tirages | Toujours du 10 × 15, jamais de 5 × 15 ni d'autre découpe. Imprimante très probablement une DNP DS620, à confirmer (Germain, 2026-11-12, SCRUM-26) |
 | Enregistrer les photos de la galerie | Oui : tout invité peut télécharger les photos de la galerie ouverte (Germain, 2026-11-11, SCRUM-59) |
 | Suppression d'une photo (équipe) | Depuis le panneau opérateur, après confirmation : la photo quitte la galerie de tous, ses fichiers sont effacés, l'enregistrement reste (historique des impressions) et l'action est tracée. Refusée tant qu'une impression de la photo est en attente ou à vérifier (SCRUM-30, à confirmer par Germain) |
 | Réglages pendant le salon | Depuis le panneau opérateur : galerie (activée, ouverte), limite d'impressions (vide = sans limite, vaut pour les prochaines demandes seulement), fermeture de l'événement avec confirmation, réversible tant que rien n'est purgé. Chaque changement est tracé (SCRUM-32, à confirmer par Germain) |
@@ -36,7 +37,7 @@
 
 | # | Question | Story concernée | Qui répond |
 |---|---|---|---|
-| 1 | Modèle exact de l'imprimante, connexion, système de l'ordinateur du salon, formats de papier, consommables, coût par tirage, retour d'état du pilote | SCRUM-26, 42 | La personne qui fournit l'imprimante |
+| 1 | Confirmation du modèle (DNP DS620 très probable, 2026-11-12), connexion, système de l'ordinateur du salon (Mac probable), brillant ou mat, consommables et coût par tirage, retour d'état du pilote. Format tranché : toujours du 10 × 15 | SCRUM-26, 42 | La personne qui fournit l'imprimante |
 | 6 | Un invité peut-il retirer lui-même ses photos de la galerie, ou partager après coup une photo gardée pour lui ? (L'enregistrement est tranché, voir plus haut.) | SCRUM-28, 29, 63 | Germain |
 | 7 | Photo originale conservée, ou seulement l'image compressée ; dimensions cibles | SCRUM-17, 18, 20 | Germain, selon le format d'impression |
 | 8 | Création de l'événement de démo par script (sans écran) | SCRUM-14 | Germain |

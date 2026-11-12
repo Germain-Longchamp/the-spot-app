@@ -17,7 +17,7 @@ Source de vérité du backlog : Jira, site `glongchamp8.atlassian.net`, projet *
 - **Backend / données** : Supabase — authentification anonyme, Postgres avec **RLS**, Storage, Realtime
 - **Agent d'impression** : démon Node.js géré par PM2, sur l'ordinateur branché à l'imprimante
 - **Tâches planifiées** : `pg_cron` appelant directement une fonction SQL (passage des jobs en STUCK après 60 s sans signe de vie)
-- **Imprimante** : imprimante photo professionnelle fournie par le client ; **modèle encore inconnu** (voir « Points ouverts »)
+- **Imprimante** : imprimante photo professionnelle fournie par le client ; très probablement une **DNP DS620**, toujours en **10 × 15**, ordinateur du salon probablement un Mac (à confirmer, voir « Points ouverts »)
 
 ## Règles non négociables
 
@@ -102,7 +102,7 @@ the-spot/
 
 ## Points ouverts (à ne pas trancher seul)
 
-- Modèle exact de l'imprimante, connexion, système de l'ordinateur du salon, formats de papier, consommables, retour d'état du pilote (SCRUM-26)
+- Confirmation du modèle (DNP DS620 probable) et du Mac, connexion, brillant ou mat, consommables, retour d'état du pilote (SCRUM-26). Format tranché : toujours 10 × 15
 - Option galerie décochée par défaut (SCRUM-19)
 - Photo originale conservée ou seulement la version compressée (SCRUM-20)
 
