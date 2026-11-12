@@ -55,7 +55,7 @@ test("même galerie fermée, l'entrée reste là pour retrouver ses photos", asy
 
   await page.getByRole("link", { name: /Voir la galerie/ }).click();
 
-  await expect(page.getByText("La galerie sera disponible plus tard")).toBeVisible();
+  await expect(page.getByText("La galerie est une surprise")).toBeVisible();
   await expect(myTiles(page)).toHaveCount(1);
 });
 
@@ -67,7 +67,7 @@ test("événement sans galerie : l'entrée s'appelle « Vos photos »", async ({
 
   await expect(page.getByRole("heading", { name: "Vos photos" })).toBeVisible();
   await expect(myTiles(page)).toHaveCount(1);
-  await expect(page.getByText("La galerie sera disponible plus tard")).toHaveCount(0);
+  await expect(page.getByText("La galerie est une surprise")).toHaveCount(0);
 });
 
 /**

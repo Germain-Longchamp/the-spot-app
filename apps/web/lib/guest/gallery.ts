@@ -193,3 +193,25 @@ export function newPhotosText(count: number): string {
 
 /** "/e/<token>#photo": the home opens straight on the camera (SCRUM-54). */
 export const TAKE_PHOTO_HASH = "photo";
+
+/**
+ * The gallery settings of the guest's event, read again while the gallery is
+ * on screen (SCRUM-56): the team may open it at any time. RLS limits the read
+ * to the guest's own event. Null when the network fails: the screen stays.
+ */
+export async function loadGalleryState(
+  supabase: SupabaseClient,
+  eventId: string
+): Promise<{ enabled: boolean; visible: boolean } | null> {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .select("gallery_enabled, gallery_visible")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return { enabled: data.gallery_enabled, visible: data.gallery_visible };
+  } catch {
+    return null;
+  }
+}

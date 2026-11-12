@@ -35,7 +35,8 @@ test("galerie ouverte : grille des photos publiées, les plus récentes d'abord"
   await page.goto(GALLERY);
 
   await expect(thumbs(page)).toHaveCount(3);
-  const query = decodeURIComponent(asked.queries[0]);
+  // The rows, not the count read next to them.
+  const query = decodeURIComponent(asked.queries.find((q) => q.includes("order="))!);
   // No "published" filter: RLS returns the shared photos plus the guest's own.
   expect(query).not.toContain("is_published=eq");
   expect(query).toContain(`event_id=eq.${TEST_EVENT.id}`);
@@ -58,7 +59,7 @@ test("galerie cachée : message clair, et mes photos seulement", async ({ page }
   );
   await page.goto(GALLERY);
 
-  await expect(page.getByText("La galerie sera disponible plus tard")).toBeVisible();
+  await expect(page.getByText("La galerie est une surprise")).toBeVisible();
   await expect(thumbs(page)).toHaveCount(1);
   await expect(page.getByText("Non partagée")).toBeVisible();
 });
@@ -68,7 +69,7 @@ test("galerie cachée sans photo à moi : invitation à en prendre une", async (
   await mockGallery(page, []);
   await page.goto(GALLERY);
 
-  await expect(page.getByText("Vos photos apparaîtront ici")).toBeVisible();
+  await expect(page.getByText("Vous n'avez pas encore de photo")).toBeVisible();
 });
 
 test("événement sans galerie : « Vos photos », sans annonce de galerie", async ({ page }) => {
@@ -77,7 +78,7 @@ test("événement sans galerie : « Vos photos », sans annonce de galerie", asy
   await page.goto(GALLERY);
 
   await expect(page.getByRole("heading", { name: "Vos photos" })).toBeVisible();
-  await expect(page.getByText("La galerie sera disponible plus tard")).toHaveCount(0);
+  await expect(page.getByText("La galerie est une surprise")).toHaveCount(0);
 });
 
 test("galerie vide : invitation à partager sa photo", async ({ page }) => {
