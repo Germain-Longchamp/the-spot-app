@@ -153,6 +153,8 @@ export function Gallery({ event, token, guestId }: Props) {
           albumItems={album.items}
           onPrinted={album.refresh}
           token={token}
+          eventName={event.name}
+          eventDate={event.eventDate}
           onViewing={setViewing}
         />
       </main>
@@ -186,6 +188,8 @@ function GalleryGrid({
   albumItems,
   onPrinted,
   token,
+  eventName,
+  eventDate,
   onViewing,
 }: {
   eventId: string;
@@ -195,6 +199,8 @@ function GalleryGrid({
   albumItems: AlbumItem[] | null;
   onPrinted: () => void;
   token: string;
+  eventName: string;
+  eventDate: string | null;
   /** The viewer opens or closes: the rest of the page hides or comes back. */
   onViewing: (viewing: boolean) => void;
 }) {
@@ -424,6 +430,8 @@ function GalleryGrid({
             onLoadMore={() => !loading && load(page + 1)}
             albumItems={albumItems}
             eventId={eventId}
+            eventName={eventName}
+            eventDate={eventDate}
             token={token}
             onPrinted={onPrinted}
             onClose={closeViewer}

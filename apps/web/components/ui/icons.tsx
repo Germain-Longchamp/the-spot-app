@@ -122,6 +122,14 @@ export const ArrowUpIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const DownloadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 4v11" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M5 20h14" />
+  </Icon>
+);
+
 export const ChevronLeftIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="m15 18-6-6 6-6" />
