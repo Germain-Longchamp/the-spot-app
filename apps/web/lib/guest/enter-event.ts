@@ -10,6 +10,8 @@ export interface GuestEvent {
   galleryEnabled: boolean;
   /** The gallery is open: guests may look at it. */
   galleryVisible: boolean;
+  /** Line 1 of the print's band: the organiser's text, or the name (SCRUM-62). */
+  frameTitle: string;
 }
 
 export type EntryOutcome =
@@ -60,6 +62,7 @@ export async function enterEvent(
         eventDate: data.event.event_date ?? null,
         galleryEnabled: data.event.gallery_enabled ?? false,
         galleryVisible: data.event.gallery_visible,
+        frameTitle: data.event.frame_title || data.event.name,
       },
     };
   } catch {

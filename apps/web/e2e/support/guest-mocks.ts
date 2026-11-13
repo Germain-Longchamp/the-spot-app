@@ -34,7 +34,7 @@ export const TEST_EVENT = {
 
 interface GuestBackend {
   entry?: string;
-  event?: Partial<typeof TEST_EVENT>;
+  event?: Partial<typeof TEST_EVENT> & { frame_title?: string };
   failEntry?: boolean;
 }
 

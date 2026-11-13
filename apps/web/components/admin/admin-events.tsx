@@ -1,20 +1,29 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { PrintPreview } from "@/components/guest/print-preview";
 import { GuestAccess } from "@/components/operator/guest-access";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
-import type { AdminEvent, CreateEventInput, CreateEventResult } from "@/lib/admin/events";
+import type {
+  AdminEvent,
+  CreateEventInput,
+  CreateEventResult,
+  FrameTitleResult,
+} from "@/lib/admin/events";
+import { MAX_FRAME_TITLE_LENGTH } from "@/lib/admin/events-input";
 
 export type CreateOutcome = CreateEventResult | { kind: "denied" };
 export type ResetOutcome = { operatorPath: string } | { kind: "denied" } | null;
+export type FrameTitleOutcome = FrameTitleResult | { kind: "denied" };
 
 interface Props {
   events: AdminEvent[];
   email: string;
   onCreate: (input: CreateEventInput) => Promise<CreateOutcome>;
   onReset: (eventId: string) => Promise<ResetOutcome>;
+  onFrameTitle: (eventId: string, title: string) => Promise<FrameTitleOutcome>;
   onSignOut: () => void;
 }
 
@@ -30,7 +39,7 @@ const DENIED = "Votre session a expiré. Reconnectez-vous.";
 const FAILED = "L'action n'a pas abouti. Vérifiez le réseau, puis réessayez.";
 
 /** The team's events: create one, find its QR code, replace its operator link. */
-export function AdminEvents({ events, email, onCreate, onReset, onSignOut }: Props) {
+export function AdminEvents({ events, email, onCreate, onReset, onFrameTitle, onSignOut }: Props) {
   // The operator link is shown once, right after it is made.
   const [fresh, setFresh] = useState<{ eventId: string; operatorPath: string } | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -83,6 +92,7 @@ export function AdminEvents({ events, email, onCreate, onReset, onSignOut }: Pro
                   }
                   return outcome && "kind" in outcome ? DENIED : FAILED;
                 }}
+                onFrameTitle={(title) => onFrameTitle(event.id, title)}
               />
             ))}
           </ul>
@@ -188,12 +198,14 @@ function EventItem({
   onToggle,
   operatorPath,
   onReset,
+  onFrameTitle,
 }: {
   event: AdminEvent;
   open: boolean;
   onToggle: () => void;
   operatorPath: string | null;
   onReset: () => Promise<string | null>;
+  onFrameTitle: (title: string) => Promise<FrameTitleOutcome>;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -234,6 +246,8 @@ function EventItem({
       {open && (
         <div className="flex flex-col gap-3">
           <GuestAccess accessPath={event.accessPath} shortCode={event.shortCode} eventOpen={event.open} />
+
+          <FrameTitleForm event={event} onSave={onFrameTitle} />
 
           {confirming ? (
             <div role="alertdialog" aria-label="Confirmer le nouveau lien" className="flex flex-col gap-2 rounded-xl bg-accent-soft p-3">
@@ -307,5 +321,107 @@ function OperatorLink({ path }: { path: string }) {
         {copied}
       </p>
     </div>
+  );
+}
+
+/** A stand-in photo for the frame preview: two guests, as in Alison's mockup. */
+const SAMPLE_PHOTO =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="#E9CFC0"/><rect y="360" width="400" height="140" fill="#D9B3A2"/><circle cx="150" cy="200" r="48" fill="#B06B6E"/><rect x="92" y="256" width="116" height="244" rx="56" fill="#B06B6E"/><circle cx="262" cy="212" r="45" fill="#8E4A55"/><rect x="206" y="266" width="112" height="234" rx="54" fill="#8E4A55"/></svg>`,
+  );
+
+/**
+ * The text printed under every photo of the event (SCRUM-62), with the print
+ * as it will come out. Empty: the event's name.
+ */
+function FrameTitleForm({
+  event,
+  onSave,
+}: {
+  event: AdminEvent;
+  onSave: (title: string) => Promise<FrameTitleOutcome>;
+}) {
+  const [title, setTitle] = useState(event.frameTitle ?? "");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
+  const length = Array.from(title.trim()).length;
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const outcome = await onSave(title);
+      if (outcome.kind === "applied") {
+        setTitle(outcome.frameTitle ?? "");
+        setMessage({
+          error: false,
+          text: outcome.frameTitle
+            ? "Texte enregistré : il sera sur les prochains tirages."
+            : "Texte retiré : les prochains tirages porteront le nom de l'événement.",
+        });
+      } else if (outcome.kind === "invalid") {
+        setMessage({ error: true, text: outcome.message });
+      } else {
+        setMessage({ error: true, text: outcome.kind === "denied" ? DENIED : FAILED });
+      }
+    } catch {
+      setMessage({ error: true, text: FAILED });
+    }
+    setBusy(false);
+  }
+
+  return (
+    <form
+      onSubmit={save}
+      noValidate
+      aria-label="Texte du cadre"
+      className="flex flex-col gap-4 rounded-xl border border-border p-3 sm:flex-row"
+    >
+      <div className="flex flex-1 flex-col gap-2">
+        <label className="flex flex-col gap-1 font-semibold">
+          Texte du cadre
+          <span className="flex items-center gap-2 rounded-2xl border border-border bg-background px-4">
+            <input
+              aria-describedby={`frame-title-hint-${event.id}`}
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setMessage(null);
+              }}
+              maxLength={MAX_FRAME_TITLE_LENGTH}
+              placeholder={event.name}
+              className="min-h-[52px] min-w-0 flex-1 bg-transparent font-normal outline-none"
+            />
+            <span data-testid="frame-title-count" className="text-sm font-normal text-muted">
+              {length}/{MAX_FRAME_TITLE_LENGTH}
+            </span>
+          </span>
+        </label>
+        <p id={`frame-title-hint-${event.id}`} className="-mt-1 text-sm text-muted">
+          Imprimé sous chaque photo. Vide : le nom de l&apos;événement.
+        </p>
+        <Button type="submit" variant="secondary" loading={busy} className="self-start">
+          Enregistrer le texte
+        </Button>
+        {message && (
+          <p role={message.error ? "alert" : "status"} className={`text-sm ${message.error ? "text-danger" : ""}`}>
+            {message.text}
+          </p>
+        )}
+      </div>
+      <div
+        data-testid="frame-title-preview"
+        className="flex w-full shrink-0 justify-center rounded-xl bg-divider/60 p-3 sm:w-56"
+      >
+        <PrintPreview
+          src={SAMPLE_PHOTO}
+          maxWidth="11rem"
+          frame={{ line1: title.trim() || event.name, line2: null }}
+        />
+      </div>
+    </form>
   );
 }
