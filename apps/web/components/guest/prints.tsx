@@ -84,6 +84,11 @@ function PrintCard({
         </span>
         <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>{chip}</span>
+          {item.print!.frameText && (
+            <span data-testid="print-card-text" className="max-w-full truncate text-sm font-semibold text-accent">
+              « {item.print!.frameText} »
+            </span>
+          )}
           <span role="status" aria-live="polite" className="text-sm text-muted">
             {detail}
           </span>

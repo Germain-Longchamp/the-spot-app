@@ -18,6 +18,8 @@ export interface FakeJob {
   photo_id: string;
   status: PrintJobStatus;
   created_at: string;
+  frame_line1?: string | null;
+  frame_line2?: string | null;
 }
 
 export const fakeJob = (

@@ -9,10 +9,10 @@ import { PrintZoom } from "@/components/guest/print-zoom";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { CameraIcon, GalleryIcon, PrinterIcon } from "@/components/ui/icons";
+import { CameraIcon, GalleryIcon, PencilIcon, PrinterIcon } from "@/components/ui/icons";
 import { Switch } from "@/components/ui/switch";
 import { sendPhoto } from "@/lib/guest/send-photo";
-import type { FrameText } from "@/lib/print/layout";
+import { BAND, cleanLine, FrameText, stripUnprintable } from "@/lib/print/layout";
 import { unavailableMessages } from "@/lib/print/availability";
 import { printRequestMessages } from "@/lib/print/request-print";
 import { usePrintRequest } from "@/lib/print/use-print-request";
@@ -24,6 +24,9 @@ const failure =
 const closed = "Cet événement est terminé : votre photo n'a pas été envoyée.";
 
 type Stage = "review" | "sending" | "done";
+
+/** Spaces tidied, nothing unprintable; the capitals of line 2 are only a style. */
+const tidy = (text: string) => cleanLine(text, BAND.line1);
 
 /** Long enough to read two short lines. */
 const GALLERY_HINT_MS = 4000;
@@ -69,8 +72,18 @@ export function PhotoPreview({
   const [printed, setPrinted] = useState(false);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
-  // Until the guest can write their own (SCRUM-61): the event's frame text.
-  const frame = useMemo(() => ({ line1: frameTitle, line2: null }), [frameTitle]);
+  // The guest's texts for the band (SCRUM-61): line 1 starts with the event's
+  // frame text; emptied, the print takes it back.
+  const [line1, setLine1] = useState(frameTitle);
+  const [line2, setLine2] = useState("");
+  const [editing, setEditing] = useState(false);
+  const frame = useMemo<FrameText>(
+    () => ({
+      line1: tidy(line1) || frameTitle,
+      line2: tidy(line2) || null,
+    }),
+    [line1, line2, frameTitle]
+  );
   const closeZoom = useCallback(() => setZoomed(false), []);
   const [galleryHint, setGalleryHint] = useState(false);
   useEffect(() => {
@@ -147,7 +160,7 @@ export function PhotoPreview({
     acting.current = true;
     const fromDone = stage === "done";
     setStage("sending");
-    const outcome = await print.press(ensureSent);
+    const outcome = await print.press(ensureSent, { line1: tidy(line1), line2: tidy(line2) });
     if (outcome === "created") {
       setPrinted(true);
       setStage("done");
@@ -247,6 +260,7 @@ export function PhotoPreview({
   // Everything the guest needs to decide sits in the bar, next to the
   // buttons: never under the fold (UX rule 1, SCRUM-52). Kept short, so the
   // print gets the room (SCRUM-66): the printer status goes up in the header.
+  // Writing the texts takes the bar's place, the print stays in sight.
   return (
     <Screen
       stepKey="review"
@@ -254,6 +268,16 @@ export function PhotoPreview({
       back={{ label: "Reprendre", onClick: onDone }}
       aside={<PrinterStatus eventId={eventId} compact />}
       footer={
+        editing ? (
+          <FrameTextEditor
+            line1={line1}
+            line2={line2}
+            placeholder={frameTitle}
+            onLine1={setLine1}
+            onLine2={setLine2}
+            onDone={() => setEditing(false)}
+          />
+        ) : (
         <>
 
           {(unavailable || refusal) && (
@@ -265,6 +289,21 @@ export function PhotoPreview({
             </p>
           )}
           {error && <ErrorMessage>{error}</ErrorMessage>}
+
+          <button
+            type="button"
+            data-testid="frame-text-edit"
+            onClick={() => setEditing(true)}
+            aria-label={`Modifier votre texte : ${frame.line1}${frame.line2 ? `, ${frame.line2}` : ""}`}
+            className="flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-left transition-transform active:scale-[0.98]"
+          >
+            <PencilIcon size={16} className="shrink-0 text-accent" />
+            <span className="min-w-0 flex-1 truncate font-semibold text-accent">
+              {frame.line1}
+              {frame.line2 ? ` · ${frame.line2}` : ""}
+            </span>
+            <span className="shrink-0 text-sm font-semibold underline underline-offset-4">Modifier</span>
+          </button>
 
           {galleryEnabled && (
             <div className="relative">
@@ -307,6 +346,7 @@ export function PhotoPreview({
             {error ? "Réessayer sans imprimer" : "Valider sans imprimer"}
           </button>
         </>
+        )
       }
     >
       {url && (
@@ -406,5 +446,70 @@ function SuccessMark() {
         />
       </svg>
     </span>
+  );
+}
+
+const MAX_LINE = 30;
+
+/**
+ * The two lines of the band (SCRUM-61), in the bar while the print above
+ * follows each key. 30 characters a line, emojis left out as they type.
+ */
+function FrameTextEditor({
+  line1,
+  line2,
+  placeholder,
+  onLine1,
+  onLine2,
+  onDone,
+}: {
+  line1: string;
+  line2: string;
+  placeholder: string;
+  onLine1: (value: string) => void;
+  onLine2: (value: string) => void;
+  onDone: () => void;
+}) {
+  const field = (
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    hint: string,
+    autoFocus = false
+  ) => (
+    <label className="flex flex-col gap-1 text-sm font-semibold">
+      {label}
+      <span className="flex items-center gap-2 rounded-xl border-[1.5px] border-accent bg-surface px-3">
+        <input
+          value={value}
+          onChange={(event) => onChange(stripUnprintable(event.target.value))}
+          maxLength={MAX_LINE}
+          placeholder={hint}
+          autoFocus={autoFocus}
+          enterKeyHint="done"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onDone();
+          }}
+          // 16 px: iOS zooms on smaller fields.
+          className="min-h-11 min-w-0 flex-1 bg-transparent text-base font-normal outline-none"
+        />
+        <span className="text-xs font-normal text-muted">
+          {Array.from(value).length}/{MAX_LINE}
+        </span>
+      </span>
+    </label>
+  );
+
+  return (
+    <div className="flex flex-col gap-3" data-testid="frame-text-editor">
+      <p className="text-sm text-muted">
+        Il vous aidera aussi à reconnaître votre tirage à l&apos;imprimante.
+      </p>
+      {field("Votre petit mot", line1, onLine1, placeholder, true)}
+      {field("Deuxième ligne (facultative)", line2, onLine2, "Par exemple une date")}
+      <Button variant="secondary" onClick={onDone}>
+        C&apos;est bon
+      </Button>
+    </div>
   );
 }

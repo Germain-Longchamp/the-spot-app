@@ -7,6 +7,7 @@ import {
   PrintRequestOutcome,
   requestPrint,
 } from "@/lib/print/request-print";
+import type { FrameText } from "@/lib/print/layout";
 
 /**
  * One key per photo, kept across reloads: a guest who reloads after losing
@@ -46,8 +47,14 @@ export function usePrintRequest(photoId: string) {
   const inFlight = useRef(false);
   const key = useRef<string | null>(null);
 
-  /** Runs `before` first (the photo upload): no print without it. */
-  async function press(before?: () => Promise<boolean>): Promise<PrintRequestOutcome | null> {
+  /**
+   * Runs `before` first (the photo upload): no print without it. `frame`: the
+   * guest's texts for the band (SCRUM-61).
+   */
+  async function press(
+    before?: () => Promise<boolean>,
+    frame?: FrameText | null
+  ): Promise<PrintRequestOutcome | null> {
     if (inFlight.current) return null;
     inFlight.current = true;
     setSending(true);
@@ -59,7 +66,7 @@ export function usePrintRequest(photoId: string) {
     }
 
     key.current ??= idempotencyKeyFor(photoId);
-    const result = await requestPrint(createClient(), photoId, key.current);
+    const result = await requestPrint(createClient(), photoId, key.current, frame);
 
     // That request is over: asking again must be a new one.
     if (result === "request_cancelled") {

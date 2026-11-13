@@ -221,6 +221,11 @@ function JobRow({
             ? "Prochaine à imprimer"
             : operatorStatusLabel(job)}
         </p>
+        {job.frameText && (
+          <p data-testid="job-frame-text" className="break-words text-sm font-semibold">
+            « {job.frameText} »
+          </p>
+        )}
         <p className="text-sm text-muted">
           Demandée à {time.format(new Date(job.createdAt))}
         </p>

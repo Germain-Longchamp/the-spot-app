@@ -20,6 +20,8 @@ export interface AlbumPrint {
    * still waiting; null otherwise, or when the count could not be read.
    */
   ahead: number | null;
+  /** The texts printed under the photo (SCRUM-61), "line 1 · line 2". */
+  frameText?: string | null;
 }
 
 /** Long enough to browse, short enough to be useless if copied. */
@@ -122,7 +124,7 @@ export async function loadAlbum(
         .order("created_at", { ascending: false }),
       supabase
         .from("print_jobs")
-        .select("photo_id, status, created_at")
+        .select("photo_id, status, created_at, frame_line1, frame_line2")
         .eq("event_id", eventId)
         .order("created_at", { ascending: false }),
     ]);
@@ -132,7 +134,12 @@ export async function loadAlbum(
     const latest = new Map<string, AlbumPrint>();
     for (const job of prints.data) {
       if (!latest.has(job.photo_id)) {
-        latest.set(job.photo_id, { status: job.status, createdAt: job.created_at, ahead: null });
+        latest.set(job.photo_id, {
+          status: job.status,
+          createdAt: job.created_at,
+          ahead: null,
+          frameText: frameTextOf(job.frame_line1, job.frame_line2),
+        });
       }
     }
 
@@ -176,4 +183,13 @@ export async function loadAlbum(
   } catch {
     return null;
   }
+}
+
+/** "Camille & Hugo · 14 juin", or null without a text. */
+export function frameTextOf(
+  line1: string | null | undefined,
+  line2: string | null | undefined
+): string | null {
+  const text = [line1, line2].filter((line) => line && line.trim()).join(" · ");
+  return text || null;
 }

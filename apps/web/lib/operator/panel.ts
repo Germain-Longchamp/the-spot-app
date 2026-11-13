@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { frameTextOf } from "@/lib/guest/album";
 import type { PrintJobStatus } from "@/lib/print/job-status";
 
 export interface PanelJob {
@@ -8,6 +9,8 @@ export interface PanelJob {
   createdAt: string;
   lastError: string | null;
   photoUrl: string | null;
+  /** The texts printed under the photo (SCRUM-61): the team reads them first. */
+  frameText?: string | null;
 }
 
 export interface GalleryItem {
@@ -94,6 +97,8 @@ interface JobRow {
   authorized_at: string | null;
   created_at: string;
   last_error: string | null;
+  frame_line1: string | null;
+  frame_line2: string | null;
   photos: { storage_path: string } | null;
 }
 
@@ -113,7 +118,7 @@ export async function loadSnapshot(
     client
       .from("print_jobs")
       .select(
-        "id, status, authorized_at, created_at, last_error, photos(storage_path)",
+        "id, status, authorized_at, created_at, last_error, frame_line1, frame_line2, photos(storage_path)",
       )
       .eq("event_id", eventId)
       .order("created_at", { ascending: false })
@@ -143,6 +148,7 @@ export async function loadSnapshot(
       createdAt: row.created_at,
       lastError: row.last_error,
       photoUrl: null,
+      frameText: frameTextOf(row.frame_line1, row.frame_line2),
     })),
   );
 
