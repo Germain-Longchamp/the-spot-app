@@ -1,5 +1,5 @@
 import type { Logger } from "./logger";
-import type { CropZone } from "./layout";
+import type { CropZone, FrameText } from "./layout";
 import type { Printer, PrintOptions } from "./printer";
 
 export type { Logger } from "./logger";
@@ -10,6 +10,8 @@ export interface ClaimedJob {
   storagePath: string;
   /** The zone kept on the phone (SCRUM-65); null for older photos. */
   crop?: CropZone | null;
+  /** The texts of the band below the photo (SCRUM-60). */
+  frame?: FrameText | null;
 }
 
 export type JobReport = "DONE" | "FAILED";

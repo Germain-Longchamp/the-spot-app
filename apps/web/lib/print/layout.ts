@@ -102,3 +102,103 @@ export function pageLayoutPercent() {
     },
   };
 }
+
+/**
+ * The band below the photo (SCRUM-60): Alison's mockup (2-personnaliser-cadre,
+ * 2026-11-11), a print 248 px wide, scaled to the paper. Line 1 in raspberry,
+ * bold; line 2, optional, smaller, grey, in spaced capitals; the The Spot icon
+ * on the right. The text starts on the photo's left edge, the icon ends on
+ * its right edge, the whole vertically centred in the band. Inter, embedded
+ * in the agent.
+ */
+const MOCKUP_MM_PER_PX = PRINT_LAYOUT.paperMm.width / 248;
+
+export interface BandLineStyle {
+  sizeMm: number;
+  /** Long texts shrink down to this size, then end with "…". */
+  minSizeMm: number;
+  color: string;
+  bold: boolean;
+  letterSpacingEm: number;
+  uppercase: boolean;
+}
+
+export const BAND = {
+  line1: {
+    sizeMm: 16 * MOCKUP_MM_PER_PX,
+    minSizeMm: 11 * MOCKUP_MM_PER_PX,
+    color: "#AD354E",
+    bold: true,
+    letterSpacingEm: 0,
+    uppercase: false,
+  } satisfies BandLineStyle,
+  line2: {
+    sizeMm: 10.5 * MOCKUP_MM_PER_PX,
+    minSizeMm: 8.5 * MOCKUP_MM_PER_PX,
+    color: "#5A474B",
+    bold: false,
+    letterSpacingEm: 0.08,
+    uppercase: true,
+  } satisfies BandLineStyle,
+  /** Between the two lines. */
+  lineGapMm: 4 * MOCKUP_MM_PER_PX,
+  iconMm: 22 * MOCKUP_MM_PER_PX,
+  /** Between the text and the icon. */
+  iconGapMm: 8 * MOCKUP_MM_PER_PX,
+  /** Inter's own line height (ascender + descender), so that the browser and the agent agree. */
+  lineHeight: 1.21,
+  /** Inter's ascender, in em: from the top of a line to its baseline. */
+  ascender: 0.96875,
+} as const;
+
+export interface FrameText {
+  line1: string;
+  line2?: string | null;
+}
+
+/**
+ * What can be printed of a line: no control characters, no emojis (unsure on
+ * the printer, and the brand has none), spaces tidied.
+ */
+// Built from strings: the web app's TypeScript target predates the "u" flag.
+const CONTROL = new RegExp("[\\p{Cc}\\p{Cf}]", "gu");
+const EMOJI = new RegExp("[\\p{Extended_Pictographic}\\u{1F1E6}-\\u{1F1FF}\\u{FE0F}\\u{20E3}]", "gu");
+
+export function cleanLine(text: string | null | undefined, style: BandLineStyle): string {
+  const clean = (text ?? "")
+    .replace(CONTROL, "")
+    .replace(EMOJI, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return style.uppercase ? clean.toLocaleUpperCase("fr-FR") : clean;
+}
+
+/** Room for the text: the photo's width, less the icon and its gap. */
+export function bandTextWidthMm(): number {
+  return PRINT_LAYOUT.photoMm.width - BAND.iconMm - BAND.iconGapMm;
+}
+
+/**
+ * The size of a line, and its text: as in the mockup if it fits, smaller if
+ * not (down to the style's minimum), then cut with "…". `measureEm` gives the
+ * width of a text at a size of 1, letter spacing included: the browser and the
+ * agent each measure with Inter, the rule is the same.
+ */
+export function fitLine(
+  text: string,
+  style: BandLineStyle,
+  maxWidthMm: number,
+  measureEm: (text: string) => number
+): { text: string; sizeMm: number } {
+  if (!text) return { text: "", sizeMm: style.sizeMm };
+  const em = measureEm(text);
+  if (em * style.sizeMm <= maxWidthMm) return { text, sizeMm: style.sizeMm };
+  const sizeMm = Math.max(style.minSizeMm, maxWidthMm / em);
+  if (em * sizeMm <= maxWidthMm + 1e-6) return { text, sizeMm };
+  const chars = Array.from(text);
+  for (let n = chars.length - 1; n > 0; n--) {
+    const cut = chars.slice(0, n).join("").trimEnd() + "…";
+    if (measureEm(cut) * sizeMm <= maxWidthMm) return { text: cut, sizeMm };
+  }
+  return { text: "…", sizeMm };
+}

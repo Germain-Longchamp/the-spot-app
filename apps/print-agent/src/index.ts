@@ -77,7 +77,11 @@ async function main() {
       sleep,
       printOptions: { copies: 1 },
       compose: (image, job) =>
-        composePage(image, { crop: job.crop ?? null, landscape: config.pageLandscape }),
+        composePage(image, {
+          crop: job.crop ?? null,
+          frame: job.frame ?? null,
+          landscape: config.pageLandscape,
+        }),
       activeJob: { current: null },
       shouldStop: () => stop.signal.aborted,
       // Three tries stay well under the 60 seconds before a job goes STUCK.

@@ -12,6 +12,7 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { CameraIcon, GalleryIcon, PrinterIcon } from "@/components/ui/icons";
 import { Switch } from "@/components/ui/switch";
 import { sendPhoto } from "@/lib/guest/send-photo";
+import type { FrameText } from "@/lib/print/layout";
 import { unavailableMessages } from "@/lib/print/availability";
 import { printRequestMessages } from "@/lib/print/request-print";
 import { usePrintRequest } from "@/lib/print/use-print-request";
@@ -33,6 +34,8 @@ interface Props {
   guestId: string;
   galleryEnabled: boolean;
   galleryVisible: boolean;
+  /** Printed in the band below the photo (SCRUM-60). */
+  eventName: string;
   /** Link to the gallery, where the guest finds all their photos (SCRUM-63). */
   galleryHref?: string;
   /** Back to the event home. */
@@ -51,6 +54,7 @@ export function PhotoPreview({
   guestId,
   galleryEnabled,
   galleryVisible,
+  eventName,
   galleryHref,
   onDone,
   onAnother,
@@ -65,6 +69,8 @@ export function PhotoPreview({
   const [printed, setPrinted] = useState(false);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
+  // Until the guest can write their own (SCRUM-61): the event's name.
+  const frame = useMemo(() => ({ line1: eventName, line2: null }), [eventName]);
   const closeZoom = useCallback(() => setZoomed(false), []);
   const [galleryHint, setGalleryHint] = useState(false);
   useEffect(() => {
@@ -221,7 +227,7 @@ export function PhotoPreview({
           </div>
         )}
 
-        {url && <Polaroid src={url} small />}
+        {url && <Polaroid src={url} frame={frame} small />}
 
         {galleryHref && (
           <div className="flex justify-center">
@@ -307,10 +313,10 @@ export function PhotoPreview({
         // The print on a grey table, so its white borders read as paper; the
         // table spans the screen, the print gets all its width.
         <div className="-mx-4 flex min-h-0 flex-1 bg-divider/60 p-3">
-          <PrintPreview src={url} fit onOpen={() => setZoomed(true)} />
+          <PrintPreview src={url} fit frame={frame} onOpen={() => setZoomed(true)} />
         </div>
       )}
-      {url && zoomed && <PrintZoom src={url} onClose={closeZoom} />}
+      {url && zoomed && <PrintZoom src={url} frame={frame} onClose={closeZoom} />}
     </Screen>
   );
 }
@@ -318,14 +324,16 @@ export function PhotoPreview({
 /** The print as it will come out (SCRUM-65), small or filling the room left. */
 function Polaroid({
   src,
+  frame,
   small = false,
   fit = false,
 }: {
   src: string;
+  frame: FrameText;
   small?: boolean;
   fit?: boolean;
 }) {
-  return <PrintPreview src={src} fit={fit} maxWidth={small ? "11rem" : "24rem"} />;
+  return <PrintPreview src={src} frame={frame} fit={fit} maxWidth={small ? "11rem" : "24rem"} />;
 }
 
 function SendingView({
