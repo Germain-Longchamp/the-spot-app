@@ -121,7 +121,9 @@ test("panneau opérateur : version courte, au-dessus de sa taille minimale", asy
   expect(box!.width * DRAWING_SHARE).toBeGreaterThanOrEqual(120);
 });
 
-test("aperçu de la photo : l'icône seule, au-dessus de 16 px", async ({ page }) => {
+// SCRUM-66: on "Votre photo" itself, the printer status takes the icon's
+// place; the icon is on the next screen.
+test("après l'aperçu de la photo : l'icône seule, au-dessus de 16 px", async ({ page }) => {
   await mockGuestBackend(page);
   await mockPhotoBackend(page);
   await page.goto(URL);
@@ -130,6 +132,8 @@ test("aperçu de la photo : l'icône seule, au-dessus de 16 px", async ({ page }
     .getByLabel("Choisir une photo")
     .setInputFiles({ name: "p.png", mimeType: "image/png", buffer: PNG });
   await expect(page.getByRole("img", { name: "Votre photo" })).toBeVisible();
+  await page.getByRole("button", { name: "Valider sans imprimer" }).click();
+  await expect(page.getByRole("button", { name: "Prendre une autre photo" })).toBeVisible();
 
   await expect(logo(page)).toHaveAttribute("src", /icone-couleur\.svg$/);
   const box = await logo(page).boundingBox();

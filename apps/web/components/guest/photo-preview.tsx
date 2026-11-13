@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MyPrints } from "@/components/guest/my-prints";
 import { Screen } from "@/components/guest/screen";
 import { PrintPreview } from "@/components/guest/print-preview";
+import { PrintZoom } from "@/components/guest/print-zoom";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
@@ -22,6 +23,9 @@ const failure =
 const closed = "Cet événement est terminé : votre photo n'a pas été envoyée.";
 
 type Stage = "review" | "sending" | "done";
+
+/** Long enough to read two short lines. */
+const GALLERY_HINT_MS = 4000;
 
 interface Props {
   photo: Blob;
@@ -60,6 +64,14 @@ export function PhotoPreview({
   const [error, setError] = useState<string | null>(null);
   const [printed, setPrinted] = useState(false);
   const [unavailable, setUnavailable] = useState<string | null>(null);
+  const [zoomed, setZoomed] = useState(false);
+  const closeZoom = useCallback(() => setZoomed(false), []);
+  const [galleryHint, setGalleryHint] = useState(false);
+  useEffect(() => {
+    if (!galleryHint) return;
+    const timer = setTimeout(() => setGalleryHint(false), GALLERY_HINT_MS);
+    return () => clearTimeout(timer);
+  }, [galleryHint]);
 
   // Fixed for this photo: pressing twice, or again after a failure, can only
   // ever produce one photo. A ref also stops a double tap before any render.
@@ -227,16 +239,16 @@ export function PhotoPreview({
   }
 
   // Everything the guest needs to decide sits in the bar, next to the
-  // buttons: never under the fold (UX rule 1, SCRUM-52).
+  // buttons: never under the fold (UX rule 1, SCRUM-52). Kept short, so the
+  // print gets the room (SCRUM-66): the printer status goes up in the header.
   return (
     <Screen
       stepKey="review"
       fit
       back={{ label: "Reprendre", onClick: onDone }}
-      title="Votre photo"
+      aside={<PrinterStatus eventId={eventId} compact />}
       footer={
         <>
-          <PrinterStatus eventId={eventId} />
 
           {(unavailable || refusal) && (
             <p
@@ -249,17 +261,29 @@ export function PhotoPreview({
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
           {galleryEnabled && (
-            <Switch
-              bare
-              label="Ajouter à la galerie de l'événement"
-              hint={
-                galleryVisible
-                  ? "Les autres invités pourront la voir et l'enregistrer."
-                  : "Elle sera visible, et enregistrable, à l'ouverture de la galerie."
-              }
-              checked={published}
-              onChange={setPublished}
-            />
+            <div className="relative">
+              {/* What sharing means, said once when it is turned on. */}
+              {galleryHint && published && (
+                <p
+                  role="status"
+                  data-testid="gallery-hint"
+                  className="absolute inset-x-0 bottom-full mb-3 animate-pop-in rounded-xl bg-foreground px-3 py-2 text-sm text-surface shadow-lift"
+                >
+                  {galleryVisible
+                    ? "Les autres invités pourront la voir et l'enregistrer."
+                    : "Elle sera visible, et enregistrable, à l'ouverture de la galerie."}
+                </p>
+              )}
+              <Switch
+                bare
+                label="Ajouter à la galerie"
+                checked={published}
+                onChange={(checked) => {
+                  setPublished(checked);
+                  setGalleryHint(checked);
+                }}
+              />
+            </div>
           )}
 
           <Button
@@ -269,13 +293,24 @@ export function PhotoPreview({
           >
             Imprimer
           </Button>
-          <Button variant="secondary" onClick={validate}>
+          <button
+            type="button"
+            onClick={validate}
+            className="-my-1 min-h-11 self-center px-4 font-semibold text-muted underline underline-offset-4 transition-transform active:scale-95"
+          >
             {error ? "Réessayer sans imprimer" : "Valider sans imprimer"}
-          </Button>
+          </button>
         </>
       }
     >
-      {url && <Polaroid src={url} fit />}
+      {url && (
+        // The print on a grey table, so its white borders read as paper; the
+        // table spans the screen, the print gets all its width.
+        <div className="-mx-4 flex min-h-0 flex-1 bg-divider/60 p-3">
+          <PrintPreview src={url} fit onOpen={() => setZoomed(true)} />
+        </div>
+      )}
+      {url && zoomed && <PrintZoom src={url} onClose={closeZoom} />}
     </Screen>
   );
 }
