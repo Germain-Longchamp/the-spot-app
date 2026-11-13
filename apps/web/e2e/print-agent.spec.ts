@@ -642,7 +642,7 @@ test.describe("connexion à Supabase", () => {
     });
 
     // No zone sent: an older photo, centred by the agent (SCRUM-65).
-    expect(await new SupabaseJobStore(client, config).claim()).toEqual({ ...job, crop: null });
+    expect(await new SupabaseJobStore(client, config).claim()).toEqual({ ...job, crop: null, frame: null });
     expect(rpcCalls[0]).toEqual({
       fn: "claim_print_job",
       args: { p_event_id: "e1", p_agent_id: "a1" },

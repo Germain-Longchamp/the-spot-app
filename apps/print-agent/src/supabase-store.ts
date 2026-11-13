@@ -1,4 +1,4 @@
-import type { CropZone } from "./layout";
+import type { CropZone, FrameText } from "./layout";
 import {
   ClaimedJob,
   ImageUnavailableError,
@@ -62,6 +62,14 @@ function toCrop(value: unknown): CropZone | null {
     : null;
 }
 
+/** The band's texts as the server sends them; null without a first line. */
+function toFrame(value: unknown): FrameText | null {
+  if (!value || typeof value !== "object") return null;
+  const { line1, line2 } = value as Record<string, unknown>;
+  if (typeof line1 !== "string" || !line1.trim()) return null;
+  return { line1, line2: typeof line2 === "string" ? line2 : null };
+}
+
 export class SupabaseJobStore implements JobStore {
   constructor(
     private readonly client: SupabaseLike,
@@ -81,6 +89,7 @@ export class SupabaseJobStore implements JobStore {
       attempt: data.attempt as number,
       storagePath: data.storage_path as string,
       crop: toCrop(data.crop),
+      frame: toFrame(data.frame),
     };
   }
 

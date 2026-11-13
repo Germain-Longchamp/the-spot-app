@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { PrintPreview } from "@/components/guest/print-preview";
+import type { FrameText } from "@/lib/print/layout";
 import { CloseIcon } from "@/components/ui/icons";
 
 const MAX_SCALE = 4;
@@ -24,7 +25,15 @@ const REST: View = { scale: 1, x: 0, y: 0 };
  * print, a double tap zooms in or back. The phone's back button closes it,
  * as in the gallery's viewer.
  */
-export function PrintZoom({ src, onClose }: { src: string; onClose: () => void }) {
+export function PrintZoom({
+  src,
+  frame,
+  onClose,
+}: {
+  src: string;
+  frame?: FrameText | null;
+  onClose: () => void;
+}) {
   const [view, setView] = useState<View>(REST);
   const area = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -161,7 +170,7 @@ export function PrintZoom({ src, onClose }: { src: string; onClose: () => void }
           className="flex min-h-0 flex-1 transition-transform duration-75"
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
         >
-          <PrintPreview src={src} fit />
+          <PrintPreview src={src} fit frame={frame} />
         </div>
       </div>
     </div>,

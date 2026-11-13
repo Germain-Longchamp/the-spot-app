@@ -113,6 +113,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
           guestId={guestId}
           galleryEnabled={event.galleryEnabled}
           galleryVisible={event.galleryVisible}
+          eventName={event.name}
           galleryHref={galleryHref}
           onDone={home}
           onAnother={() => setScreen({ name: "camera" })}
