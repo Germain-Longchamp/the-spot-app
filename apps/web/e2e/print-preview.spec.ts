@@ -214,8 +214,9 @@ test("écran épuré : statut dans l'en-tête, lien texte, interrupteur sur une 
   expect((await toggle.boundingBox())!.height).toBeLessThanOrEqual(line + 1);
   await expect(page.getByText("Les autres invités pourront la voir")).toHaveCount(0);
 
-  // Before SCRUM-66 the page was about 450 px high on this phone.
-  expect((await page.getByTestId("print-page").boundingBox())!.height).toBeGreaterThan(520);
+  // Before SCRUM-66 the page was about 450 px high on this phone; SCRUM-61
+  // gave one row back to the guest's text.
+  expect((await page.getByTestId("print-page").boundingBox())!.height).toBeGreaterThan(480);
 });
 
 test("imprimante hors ligne : le message entier reste lisible dans l'en-tête, sans déborder", async ({

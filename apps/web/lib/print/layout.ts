@@ -164,6 +164,11 @@ export interface FrameText {
 const CONTROL = new RegExp("[\\p{Cc}\\p{Cf}]", "gu");
 const EMOJI = new RegExp("[\\p{Extended_Pictographic}\\u{1F1E6}-\\u{1F1FF}\\u{FE0F}\\u{20E3}]", "gu");
 
+/** What a guest types, without what cannot be printed; spaces kept as typed. */
+export function stripUnprintable(text: string): string {
+  return text.replace(CONTROL, "").replace(EMOJI, "");
+}
+
 export function cleanLine(text: string | null | undefined, style: BandLineStyle): string {
   const clean = (text ?? "")
     .replace(CONTROL, "")

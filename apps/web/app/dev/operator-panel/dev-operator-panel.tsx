@@ -25,7 +25,7 @@ const jobs = sortJobs([
   job("done", "DONE", 1),
   job("cancelled", "CANCELLED", 2),
   job("second", "PENDING", 6),
-  job("first", "PENDING", 5),
+  job("first", "PENDING", 5, { frameText: "Tonton Michel en feu · 14 juin" }),
   job("failed", "FAILED", 3, { lastError: "Papier épuisé" }),
   job("stuck", "STUCK", 4),
 ]);

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { FrameText } from "@/lib/print/layout";
 
 export type PrintRequestOutcome =
   | "created"
@@ -7,6 +8,7 @@ export type PrintRequestOutcome =
   | "printing_paused"
   | "event_closed"
   | "photo_not_found"
+  | "invalid_frame_text"
   | "connection_lost"
   | "unexpected_error";
 
@@ -23,6 +25,7 @@ export const printRequestMessages: Record<PrintRequestOutcome, string> = {
     "Cet événement est terminé : les impressions ne sont plus possibles.",
   photo_not_found:
     "Cette photo n'est plus disponible. Reprenez-en une pour l'imprimer.",
+  invalid_frame_text: "Votre texte est trop long : 30 caractères au plus par ligne.",
   connection_lost:
     "Nous n'avons pas pu confirmer votre demande. Vérifiez votre connexion, puis réessayez : votre photo ne sera pas imprimée deux fois.",
   unexpected_error:
@@ -35,6 +38,7 @@ export function canRetry(outcome: PrintRequestOutcome): boolean {
     outcome === "printing_paused" ||
     outcome === "request_cancelled" ||
     outcome === "connection_lost" ||
+    outcome === "invalid_frame_text" ||
     outcome === "unexpected_error"
   );
 }
@@ -46,18 +50,28 @@ const knownResults: readonly string[] = [
   "printing_paused",
   "event_closed",
   "photo_not_found",
+  "invalid_frame_text",
 ];
 
 export async function requestPrint(
   supabase: SupabaseClient,
   photoId: string,
-  idempotencyKey: string
+  idempotencyKey: string,
+  /** The guest's texts for the band (SCRUM-61); without: the event's. */
+  frame?: FrameText | null
 ): Promise<PrintRequestOutcome> {
   try {
-    const { data, error, status } = await supabase.rpc("create_print_job", {
-      p_photo_id: photoId,
-      p_idempotency_key: idempotencyKey,
-    });
+    const { data, error, status } = await supabase.rpc(
+      "create_print_job",
+      frame
+        ? {
+            p_photo_id: photoId,
+            p_idempotency_key: idempotencyKey,
+            p_frame_line1: frame.line1,
+            p_frame_line2: frame.line2 ?? "",
+          }
+        : { p_photo_id: photoId, p_idempotency_key: idempotencyKey }
+    );
     if (error) {
       // Status 0 means no HTTP response ever came back: a failed fetch.
       return status === 0 ? "connection_lost" : "unexpected_error";
