@@ -30,3 +30,6 @@ npm-debug.log*
 apps/web/qr-*.png
 apps/web/qr-*.svg
 apps/print-agent/logs/
+
+# Supabase CLI link state (project ref, versions): local to each machine
+supabase/.temp/
