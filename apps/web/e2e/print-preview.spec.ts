@@ -163,6 +163,8 @@ async function openReview(page: Page, galleryVisible = true) {
     buffer: await stripes(800, 1000, [[200, 120, 90], [40, 90, 160]]),
   });
   await expect(page.getByTestId("print-photo")).toBeVisible();
+  // The screen's entrance animation moves and scales it: measure after.
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))));
 }
 
 /**

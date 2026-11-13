@@ -45,19 +45,31 @@ function useBandLines(frame: FrameText | null | undefined): Line[] {
     let active = true;
     const fit = () => {
       if (!active) return;
-      const context = document.createElement("canvas").getContext("2d");
+      // A hidden line, styled as the real one: the browser measures the text
+      // exactly as it will draw it (a canvas may not apply the same font).
+      const probe = document.createElement("span");
+      Object.assign(probe.style, {
+        position: "absolute",
+        visibility: "hidden",
+        whiteSpace: "nowrap",
+        fontSize: "100px",
+        fontFamily: family,
+      });
+      document.body.appendChild(probe);
       setLines(
         [line1, line2].map((raw, i) => {
           const style = STYLES[i];
           const text = cleanLine(raw, style);
+          probe.style.fontWeight = style.bold ? "700" : "400";
+          probe.style.letterSpacing = `${style.letterSpacingEm}em`;
           const measureEm = (t: string) => {
-            if (!context) return 0;
-            context.font = `${style.bold ? 700 : 400} 100px ${family}`;
-            return context.measureText(t).width / 100 + style.letterSpacingEm * Array.from(t).length;
+            probe.textContent = t;
+            return probe.getBoundingClientRect().width / 100;
           };
           return { ...fitLine(text, style, bandTextWidthMm(), measureEm), style };
         })
       );
+      probe.remove();
     };
     // Measured with Inter itself: wait until both weights have loaded (they
     // load lazily, and a fallback font would give other widths).

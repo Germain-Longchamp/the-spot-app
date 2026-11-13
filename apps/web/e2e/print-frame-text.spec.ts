@@ -218,7 +218,7 @@ test.describe("aperçu sur le téléphone", () => {
     });
     await expect(page.getByTestId("print-photo")).toBeVisible();
     // The screen's entrance animation moves and scales it: measure after.
-    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => null))));
   }
 
   /**
@@ -274,6 +274,13 @@ test.describe("aperçu sur le téléphone", () => {
     const icon = (await page.getByTestId("print-icon").boundingBox())!;
     expect(text.x + text.width).toBeLessThan(icon.x);
     // Once Inter has loaded, the line is fitted, not cut by the browser.
+    await expect.poll(() => line.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  });
+
+  test("police pas encore arrivée (réseau lent) : le nom long ne déborde pas non plus", async ({ page }) => {
+    await page.route("**/*.woff2", (route) => route.abort());
+    await openReview(page, "Grand salon international de la photographie et de l'image 2027");
+    const line = page.getByTestId("print-line1");
     await expect.poll(() => line.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   });
 
