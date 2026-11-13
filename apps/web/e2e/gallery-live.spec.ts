@@ -84,7 +84,10 @@ test("nouvelles photos pendant le défilement : pastille, puis en tête", async 
   expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrolled)).toBeLessThanOrEqual(2);
   await expect(thumbs(page)).toHaveCount(24);
 
-  await pill(page).click();
+  // The page clock is frozen: Playwright's click waits on animation frames
+  // that a frozen clock may never give (CI, 2026-11-12). The pill's handler
+  // is what is under test, so the click is dispatched directly.
+  await pill(page).dispatchEvent("click");
 
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
   await expect(thumbs(page)).toHaveCount(27);
