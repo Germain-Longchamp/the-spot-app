@@ -25,6 +25,9 @@ interface Line {
 
 const STYLES = [BAND.line1, BAND.line2];
 
+/** Share of the band's width a fitted line may take on screen. */
+const SAFETY = 0.95;
+
 /**
  * The band's lines fitted as the agent fits them (SCRUM-60), measured with
  * the page's own Inter once it has loaded. Until then: the mockup's sizes,
@@ -66,7 +69,9 @@ function useBandLines(frame: FrameText | null | undefined): Line[] {
             probe.textContent = t;
             return probe.getBoundingClientRect().width / 100;
           };
-          return { ...fitLine(text, style, bandTextWidthMm(), measureEm), style };
+          // A little margin: drawn small, some systems widen letters a bit
+          // (hinting), and the line would end cut by the browser.
+          return { ...fitLine(text, style, bandTextWidthMm() * SAFETY, measureEm), style };
         })
       );
       probe.remove();
