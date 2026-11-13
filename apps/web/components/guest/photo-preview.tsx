@@ -34,8 +34,8 @@ interface Props {
   guestId: string;
   galleryEnabled: boolean;
   galleryVisible: boolean;
-  /** Printed in the band below the photo (SCRUM-60). */
-  eventName: string;
+  /** Printed in the band below the photo (SCRUM-60, 62). */
+  frameTitle: string;
   /** Link to the gallery, where the guest finds all their photos (SCRUM-63). */
   galleryHref?: string;
   /** Back to the event home. */
@@ -54,7 +54,7 @@ export function PhotoPreview({
   guestId,
   galleryEnabled,
   galleryVisible,
-  eventName,
+  frameTitle,
   galleryHref,
   onDone,
   onAnother,
@@ -69,8 +69,8 @@ export function PhotoPreview({
   const [printed, setPrinted] = useState(false);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [zoomed, setZoomed] = useState(false);
-  // Until the guest can write their own (SCRUM-61): the event's name.
-  const frame = useMemo(() => ({ line1: eventName, line2: null }), [eventName]);
+  // Until the guest can write their own (SCRUM-61): the event's frame text.
+  const frame = useMemo(() => ({ line1: frameTitle, line2: null }), [frameTitle]);
   const closeZoom = useCallback(() => setZoomed(false), []);
   const [galleryHint, setGalleryHint] = useState(false);
   useEffect(() => {

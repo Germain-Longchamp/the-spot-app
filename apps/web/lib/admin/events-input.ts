@@ -1,4 +1,6 @@
 export const MAX_NAME_LENGTH = 120;
+/** Line 1 of the print's band (SCRUM-62), as for the guest's own (SCRUM-61). */
+export const MAX_FRAME_TITLE_LENGTH = 30;
 
 export interface CreateEventInput {
   name: string;

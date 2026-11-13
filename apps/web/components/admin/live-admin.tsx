@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createEventAction, resetOperatorLinkAction } from "@/app/admin/actions";
+import { createEventAction, resetOperatorLinkAction, setFrameTitleAction } from "@/app/admin/actions";
 import { AdminEvents } from "@/components/admin/admin-events";
 import { AdminDenied } from "@/components/admin/admin-login";
 import type { AdminEvent } from "@/lib/admin/events";
@@ -29,6 +29,11 @@ export function LiveAdminEvents({ events, email }: { events: AdminEvent[]; email
         return outcome;
       }}
       onReset={resetOperatorLinkAction}
+      onFrameTitle={async (eventId, title) => {
+        const outcome = await setFrameTitleAction(eventId, title);
+        router.refresh();
+        return outcome;
+      }}
       onSignOut={signOut}
     />
   );

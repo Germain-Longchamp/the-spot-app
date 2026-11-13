@@ -1,6 +1,12 @@
 import { randomBytes, randomInt } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CreateEventInput, UUID, validateEventInput } from "@/lib/admin/events-input";
+import {
+  CreateEventInput,
+  MAX_FRAME_TITLE_LENGTH,
+  UUID,
+  validateEventInput,
+} from "@/lib/admin/events-input";
+import { BAND, cleanLine } from "@/lib/print/layout";
 import { hashOperatorToken } from "@/lib/operator/access";
 
 export type { CreateEventInput };
@@ -29,6 +35,8 @@ export interface AdminEvent {
   accessPath: string;
   shortCode: string;
   createdAt: string;
+  /** Line 1 of the print's band; null: the event's name (SCRUM-62). */
+  frameTitle: string | null;
 }
 
 export type CreateEventResult =
@@ -44,9 +52,10 @@ interface EventRow {
   access_token: string;
   short_code: string;
   created_at: string;
+  frame_title: string | null;
 }
 
-const COLUMNS = "id, name, event_date, status, access_token, short_code, created_at";
+const COLUMNS = "id, name, event_date, status, access_token, short_code, created_at, frame_title";
 
 function toAdminEvent(row: EventRow): AdminEvent {
   return {
@@ -57,6 +66,7 @@ function toAdminEvent(row: EventRow): AdminEvent {
     accessPath: `/e/${row.access_token}`,
     shortCode: row.short_code,
     createdAt: row.created_at,
+    frameTitle: row.frame_title,
   };
 }
 
@@ -128,4 +138,36 @@ export async function resetOperatorLink(
   });
   if (error || data?.result !== "applied") return null;
   return { operatorPath: `/operateur/${operatorToken}` };
+}
+
+export type FrameTitleResult =
+  | { kind: "applied"; frameTitle: string | null }
+  | { kind: "invalid"; message: string }
+  | { kind: "error" };
+
+/**
+ * The text printed on line 1 of the band (SCRUM-62). Cleaned as the print
+ * cleans it (no emojis); empty: back to the event's name. Traced.
+ */
+export async function setFrameTitle(
+  client: SupabaseClient,
+  adminUserId: string,
+  eventId: string,
+  title: string,
+): Promise<FrameTitleResult> {
+  if (!UUID.test(eventId)) return { kind: "error" };
+  const clean = cleanLine(title, BAND.line1);
+  if (Array.from(clean).length > MAX_FRAME_TITLE_LENGTH) {
+    return {
+      kind: "invalid",
+      message: `Le texte est trop long (${MAX_FRAME_TITLE_LENGTH} caractères au plus).`,
+    };
+  }
+  const { data, error } = await client.rpc("admin_set_frame_title", {
+    p_admin_user_id: adminUserId,
+    p_event_id: eventId,
+    p_frame_title: clean,
+  });
+  if (error || data?.result !== "applied") return { kind: "error" };
+  return { kind: "applied", frameTitle: data.frame_title ?? null };
 }

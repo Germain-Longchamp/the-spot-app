@@ -5,7 +5,9 @@ import {
   createEvent,
   CreateEventInput,
   CreateEventResult,
+  FrameTitleResult,
   resetOperatorLink,
+  setFrameTitle,
 } from "@/lib/admin/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -24,4 +26,13 @@ export async function resetOperatorLinkAction(
   const session = await adminSession();
   if (session.kind !== "admin") return { kind: "denied" };
   return resetOperatorLink(createAdminClient(), session.user.id, eventId);
+}
+
+export async function setFrameTitleAction(
+  eventId: string,
+  title: string,
+): Promise<FrameTitleResult | { kind: "denied" }> {
+  const session = await adminSession();
+  if (session.kind !== "admin") return { kind: "denied" };
+  return setFrameTitle(createAdminClient(), session.user.id, eventId, title);
 }
