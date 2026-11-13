@@ -217,6 +217,8 @@ test.describe("aperçu sur le téléphone", () => {
       buffer: await stripes(800, 1000, [[200, 120, 90]]),
     });
     await expect(page.getByTestId("print-photo")).toBeVisible();
+    // The screen's entrance animation moves and scales it: measure after.
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
   }
 
   /**
@@ -271,8 +273,8 @@ test.describe("aperçu sur le téléphone", () => {
     const text = (await line.boundingBox())!;
     const icon = (await page.getByTestId("print-icon").boundingBox())!;
     expect(text.x + text.width).toBeLessThan(icon.x);
-    const fits = await line.evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
-    expect(fits).toBe(true);
+    // Once Inter has loaded, the line is fitted, not cut by the browser.
+    await expect.poll(() => line.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   });
 
   test("le plein écran montre aussi la bande", async ({ page }) => {

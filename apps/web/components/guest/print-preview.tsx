@@ -46,7 +46,6 @@ function useBandLines(frame: FrameText | null | undefined): Line[] {
     const fit = () => {
       if (!active) return;
       const context = document.createElement("canvas").getContext("2d");
-      const family = getComputedStyle(document.body).fontFamily;
       setLines(
         [line1, line2].map((raw, i) => {
           const style = STYLES[i];
@@ -60,8 +59,15 @@ function useBandLines(frame: FrameText | null | undefined): Line[] {
         })
       );
     };
-    if (document.fonts?.ready) document.fonts.ready.then(fit);
-    else fit();
+    // Measured with Inter itself: wait until both weights have loaded (they
+    // load lazily, and a fallback font would give other widths).
+    const family = getComputedStyle(document.body).fontFamily;
+    if (document.fonts?.load) {
+      Promise.all([
+        document.fonts.load(`700 16px ${family}`),
+        document.fonts.load(`400 16px ${family}`),
+      ]).then(fit, fit);
+    } else fit();
     return () => {
       active = false;
     };
