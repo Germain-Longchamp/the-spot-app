@@ -23,7 +23,7 @@ const display: Record<State, { text: string; dot: string }> = {
   },
 };
 
-export function PrinterStatusView({ state }: { state: State }) {
+export function PrinterStatusView({ state, compact = false }: { state: State; compact?: boolean }) {
   const { text, dot } = display[state];
 
   return (
@@ -31,7 +31,13 @@ export function PrinterStatusView({ state }: { state: State }) {
       data-testid="printer-status"
       data-state={state}
       aria-live="polite"
-      className="inline-flex items-center gap-2 self-start rounded-full bg-surface px-3 py-1.5 text-sm shadow-card"
+      className={
+        compact
+          ? // In a header, beside the way back: smaller, and on two lines if
+            // the screen is narrow; the same words (SCRUM-66).
+            "inline-flex min-w-0 items-center gap-2 rounded-2xl bg-surface px-3 py-1.5 text-xs leading-tight shadow-card"
+          : "inline-flex items-center gap-2 self-start rounded-full bg-surface px-3 py-1.5 text-sm shadow-card"
+      }
     >
       <span
         aria-hidden="true"
@@ -42,7 +48,7 @@ export function PrinterStatusView({ state }: { state: State }) {
   );
 }
 
-export function PrinterStatus({ eventId }: { eventId: string }) {
+export function PrinterStatus({ eventId, compact = false }: { eventId: string; compact?: boolean }) {
   const [state, setState] = useState<State>("checking");
   const failures = useRef(0);
 
@@ -73,5 +79,5 @@ export function PrinterStatus({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  return <PrinterStatusView state={state} />;
+  return <PrinterStatusView state={state} compact={compact} />;
 }

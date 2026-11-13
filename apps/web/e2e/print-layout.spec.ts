@@ -26,16 +26,22 @@ test.describe("mise en page", () => {
     }
   });
 
-  test("format Polaroid : 10 × 15 en hauteur, photo 8 × 10 cm à 1 cm du haut", () => {
+  test("format Polaroid : 10 × 15 en hauteur, photo 88 × 110 mm, mêmes bords en haut et sur les côtés", () => {
     expect(web.PHOTO_RATIO).toBe(0.8);
     const { page, photo } = web.pageLayoutPx();
     // 4 × 6 inches at 300 dpi.
     expect(page).toEqual({ width: 1200, height: 1800 });
-    expect(photo).toEqual({ left: 128, top: 118, width: 945, height: 1181 });
-    // What is left below the photo: the band for texts (SCRUM-60), about 4 cm.
+    // SCRUM-66: 88 × 110 mm, 6.8 mm from the top and the sides (80 px, a
+    // pixel of rounding on the left).
+    expect(photo).toEqual({ left: 81, top: 80, width: 1039, height: 1299 });
+    const right = page.width - photo.left - photo.width;
+    expect(Math.abs(photo.left - photo.top)).toBeLessThanOrEqual(1);
+    expect(Math.abs(right - photo.top)).toBeLessThanOrEqual(1);
+    // What is left below the photo: the band for texts (SCRUM-60), 35.6 mm.
     const bandMm = ((page.height - photo.top - photo.height) / 300) * 25.4;
-    expect(bandMm).toBeGreaterThan(40);
-    expect(bandMm).toBeLessThan(43);
+    expect(bandMm).toBeCloseTo(35.6, 0);
+    // No border under 6 mm (a shifted paper would show it).
+    expect((photo.top / 300) * 25.4).toBeGreaterThanOrEqual(6);
   });
 
   test("recadrage centré en 4:5", () => {
@@ -68,8 +74,8 @@ test.describe("page composée par l'agent", () => {
    *   Given ma photo a une zone de recadrage enregistrée
    *   When l'agent prépare le tirage
    *   Then l'image envoyée est une page 10 × 15 en hauteur
-   *   And la zone photo de 8 × 10 cm contient exactement cette zone, à 1 cm des bords haut, gauche et droite
-   *   And la bande du bas de 4 cm est blanche
+   *   And la photo de 88 × 110 mm contient exactement cette zone, à 6,8 mm des bords haut, gauche et droite
+   *   And la bande du bas de 35,6 mm est blanche
    */
   test("la zone enregistrée, posée dans le cadre Polaroid", async () => {
     // Left half red, right half blue; the zone keeps only some of the blue.

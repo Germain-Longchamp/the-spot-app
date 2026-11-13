@@ -17,13 +17,15 @@ interface Props {
    * footer carries what the guest needs to decide (SCRUM-52).
    */
   fit?: boolean;
+  /** Top right in place of the logo, e.g. the printer status (SCRUM-66). */
+  aside?: ReactNode;
 }
 
 /**
  * One step of the guest flow: a header with the way back, the content, and
  * the actions pinned at the bottom. One main action per screen.
  */
-export function Screen({ back, title, children, footer, stepKey, fit = false }: Props) {
+export function Screen({ back, title, children, footer, stepKey, fit = false, aside }: Props) {
   return (
     <div
       className={`mx-auto flex w-full max-w-md flex-col ${fit ? "h-[100dvh]" : "min-h-[100dvh]"}`}
@@ -41,7 +43,7 @@ export function Screen({ back, title, children, footer, stepKey, fit = false }: 
         ) : (
           <span />
         )}
-        <Logo variant="icon" width={32} />
+        {aside ?? <Logo variant="icon" width={32} />}
       </header>
 
       <main

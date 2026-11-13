@@ -10,22 +10,26 @@ const layout = pageLayoutPercent();
  *
  * `fit`: takes the room it is given (a container with a size) and shrinks to
  * it. Otherwise as wide as `maxWidth`, never taller than half the screen.
+ *
+ * `onOpen`: the page becomes a button that shows it full screen (SCRUM-66).
  */
 export function PrintPreview({
   src,
   fit = false,
   maxWidth = "24rem",
+  onOpen,
 }: {
   src: string;
   fit?: boolean;
   maxWidth?: string;
+  onOpen?: () => void;
 }) {
   const ratio = layout.pageRatio;
   const width = fit
     ? `min(100cqw, calc(100cqh * ${ratio}))`
     : `min(100%, ${maxWidth}, calc(52dvh * ${ratio}))`;
 
-  const page = (
+  const sheet = (
     <div
       data-testid="print-page"
       className="relative mx-auto shrink-0 rounded-sm bg-surface shadow-lift"
@@ -50,6 +54,19 @@ export function PrintPreview({
         />
       </div>
     </div>
+  );
+
+  const page = onOpen ? (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Voir le tirage en grand"
+      className="flex max-h-full max-w-full justify-center rounded-sm transition-transform active:scale-[0.98]"
+    >
+      {sheet}
+    </button>
+  ) : (
+    sheet
   );
 
   if (!fit) return page;

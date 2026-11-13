@@ -149,3 +149,174 @@ test("galerie : ma photo en grand reste entière, sans cadre", async ({ page }) 
   expect(await viewer.getByRole("img").evaluate((img) => getComputedStyle(img).objectFit)).toBe("contain");
   await expect(viewer.getByTestId("print-page")).toHaveCount(0);
 });
+
+// SCRUM-66 — A bigger print, and a "Votre photo" screen that leaves it the room.
+
+async function openReview(page: Page, galleryVisible = true) {
+  await mockGuestBackend(page, { event: { gallery_enabled: true, gallery_visible: galleryVisible } });
+  await mockPhotoBackend(page);
+  await page.goto(HOME);
+  await page.getByRole("button", { name: "Importer une photo" }).waitFor();
+  await page.getByLabel("Choisir une photo").setInputFiles({
+    name: "p.png",
+    mimeType: "image/png",
+    buffer: await stripes(800, 1000, [[200, 120, 90], [40, 90, 160]]),
+  });
+  await expect(page.getByTestId("print-photo")).toBeVisible();
+}
+
+/**
+ * Scenario: Aperçu aux mêmes proportions
+ *   Given je prends une photo
+ *   When l'écran « Votre photo » s'affiche
+ *   Then le tirage montré respecte ces dimensions
+ */
+test("aperçu : photo de 88 × 110 mm sur la page, mêmes bords en haut et sur les côtés", async ({ page }) => {
+  await openReview(page);
+  const sheet = (await page.getByTestId("print-page").boundingBox())!;
+  const photo = (await page.getByTestId("print-photo").boundingBox())!;
+  expect(photo.width / sheet.width).toBeCloseTo(88 / 101.6, 2);
+  expect(photo.height / sheet.height).toBeCloseTo(110 / 152.4, 2);
+  const left = photo.x - sheet.x;
+  const top = photo.y - sheet.y;
+  const right = sheet.x + sheet.width - photo.x - photo.width;
+  expect(Math.abs(left - top)).toBeLessThan(1.5);
+  expect(Math.abs(right - top)).toBeLessThan(1.5);
+});
+
+/**
+ * Scenario: Écran épuré
+ *   Given l'écran « Votre photo » sur un iPhone (390 × 844)
+ *   Then le statut de l'imprimante est visible dans l'en-tête
+ *   And « Valider sans imprimer » est un lien texte
+ *   And l'interrupteur de la galerie tient sur une ligne
+ *   And le tirage est plus haut qu'avant
+ */
+test("écran épuré : statut dans l'en-tête, lien texte, interrupteur sur une ligne, grand tirage", async ({
+  page,
+}) => {
+  await openReview(page);
+
+  await expect(page.locator("header").getByTestId("printer-status")).toHaveText(
+    "L'imprimante est connectée"
+  );
+  await expect(page.getByRole("heading", { name: "Votre photo" })).toHaveCount(0);
+
+  const print = (await page.getByRole("button", { name: "Imprimer", exact: true }).boundingBox())!;
+  const validate = page.getByRole("button", { name: "Valider sans imprimer" });
+  expect(await validate.evaluate((el) => getComputedStyle(el).textDecorationLine)).toBe("underline");
+  expect((await validate.boundingBox())!.height).toBeLessThan(print.height);
+
+  const toggle = page.getByText("Ajouter à la galerie", { exact: true });
+  const line = parseFloat(await toggle.evaluate((el) => getComputedStyle(el).lineHeight));
+  expect((await toggle.boundingBox())!.height).toBeLessThanOrEqual(line + 1);
+  await expect(page.getByText("Les autres invités pourront la voir")).toHaveCount(0);
+
+  // Before SCRUM-66 the page was about 450 px high on this phone.
+  expect((await page.getByTestId("print-page").boundingBox())!.height).toBeGreaterThan(520);
+});
+
+test("imprimante hors ligne : le message entier reste lisible dans l'en-tête, sans déborder", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await mockGuestBackend(page, { event: { gallery_enabled: true, gallery_visible: true } });
+  await mockPhotoBackend(page, { printerOnline: false });
+  await page.goto(HOME);
+  await page.getByRole("button", { name: "Importer une photo" }).waitFor();
+  await page.getByLabel("Choisir une photo").setInputFiles({
+    name: "p.png",
+    mimeType: "image/png",
+    buffer: await stripes(800, 1000, [[200, 120, 90]]),
+  });
+
+  const status = page.locator("header").getByTestId("printer-status");
+  await expect(status).toHaveText("L'imprimante n'est pas connectée pour le moment");
+  await expect(status).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole("button", { name: "Reprendre" })).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
+});
+
+/**
+ * Scenario: Aide de la galerie
+ *   When j'active « Ajouter à la galerie »
+ *   Then une courte explication s'affiche puis disparaît
+ */
+test("aide de la galerie : affichée à l'activation, puis elle s'efface", async ({ page }) => {
+  await openReview(page);
+  const toggle = page.getByRole("checkbox", { name: "Ajouter à la galerie" });
+  const hint = page.getByTestId("gallery-hint");
+
+  await toggle.uncheck();
+  await expect(hint).toHaveCount(0);
+  await toggle.check();
+  await expect(hint).toHaveText("Les autres invités pourront la voir et l'enregistrer.");
+  await expect(hint).toHaveCount(0, { timeout: 6000 });
+});
+
+test("aide de la galerie pas encore ouverte : le bon message", async ({ page }) => {
+  await openReview(page, false);
+  const toggle = page.getByRole("checkbox", { name: "Ajouter à la galerie" });
+  await toggle.uncheck();
+  await toggle.check();
+  await expect(page.getByTestId("gallery-hint")).toHaveText(
+    "Elle sera visible, et enregistrable, à l'ouverture de la galerie."
+  );
+});
+
+/**
+ * Scenario: Voir le tirage en plein écran
+ *   When je touche le tirage
+ *   Then il s'affiche en plein écran et je peux zoomer
+ *   When je ferme ou j'appuie sur retour
+ *   Then je reviens à « Votre photo » sans perdre mes choix
+ */
+test("plein écran : toucher le tirage, zoomer, revenir avec le bouton retour", async ({ page }) => {
+  await openReview(page);
+  await page.getByRole("checkbox", { name: "Ajouter à la galerie" }).uncheck();
+
+  await page.getByRole("button", { name: "Voir le tirage en grand" }).click();
+  const zoom = page.getByRole("dialog", { name: "Tirage en grand" });
+  await expect(zoom).toBeVisible();
+  // The whole width of the phone, nothing else on screen.
+  const big = (await zoom.getByTestId("print-page").boundingBox())!;
+  expect(big.width).toBeGreaterThan(0.9 * page.viewportSize()!.width);
+
+  // A double tap zooms in, another zooms back.
+  const scale = zoom.getByTestId("print-zoom");
+  await zoom.getByTestId("print-zoom-area").dblclick();
+  await expect(scale).toHaveAttribute("data-scale", "2.50");
+  await zoom.getByTestId("print-zoom-area").dblclick();
+  await expect(scale).toHaveAttribute("data-scale", "1.00");
+
+  // Two fingers moving apart.
+  const area = zoom.getByTestId("print-zoom-area");
+  const fire = (type: string, pointerId: number, x: number) =>
+    area.dispatchEvent(type, { pointerId, clientX: x, clientY: 400, isPrimary: pointerId === 1, bubbles: true });
+  await fire("pointerdown", 1, 150);
+  await fire("pointerdown", 2, 250);
+  await fire("pointermove", 2, 350);
+  await fire("pointerup", 2, 350);
+  await fire("pointerup", 1, 150);
+  await expect(scale).toHaveAttribute("data-scale", "2.00");
+
+  // The phone's back button: back to "Votre photo", choices kept.
+  await page.goBack();
+  await expect(zoom).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Imprimer", exact: true })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).not.toBeChecked();
+});
+
+test("plein écran : la croix ferme, et le retour suivant quitte bien l'aperçu", async ({ page }) => {
+  await openReview(page);
+  await page.getByRole("button", { name: "Voir le tirage en grand" }).click();
+  const zoom = page.getByRole("dialog", { name: "Tirage en grand" });
+  await zoom.getByRole("button", { name: "Fermer" }).click();
+  await expect(zoom).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Imprimer", exact: true })).toBeVisible();
+
+  // Escape too, on a computer.
+  await page.getByRole("button", { name: "Voir le tirage en grand" }).click();
+  await page.keyboard.press("Escape");
+  await expect(zoom).toHaveCount(0);
+});

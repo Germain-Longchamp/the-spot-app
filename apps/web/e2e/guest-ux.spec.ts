@@ -150,7 +150,7 @@ test("l'interrupteur de galerie se décoche au toucher et reste une case à coch
 }) => {
   await openReview(page);
 
-  await page.getByText("Ajouter à la galerie de l'événement").click();
+  await page.getByText("Ajouter à la galerie", { exact: true }).click();
 
   // Ticked by default (SCRUM-63): one touch unticks it.
   await expect(page.getByRole("checkbox", { name: "Ajouter à la galerie" })).not.toBeChecked();
@@ -322,7 +322,7 @@ for (const viewport of [
       page.getByRole("button", { name: "Reprendre" }),
       photo,
       page.getByTestId("printer-status"),
-      page.getByText("Ajouter à la galerie de l'événement"),
+      page.getByText("Ajouter à la galerie", { exact: true }),
       page.getByRole("checkbox", { name: "Ajouter à la galerie" }),
       page.getByRole("button", { name: "Imprimer", exact: true }),
       page.getByRole("button", { name: "Valider sans imprimer" }),

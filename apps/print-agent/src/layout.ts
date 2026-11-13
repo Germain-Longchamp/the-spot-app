@@ -1,22 +1,24 @@
 /**
  * The print, Polaroid style (SCRUM-65, Germain 2026-11-12): one format for v1.
- * Paper in portrait, white borders of 1 cm at the top and on the sides, the
- * photo 8 × 10 cm (4:5), and the white band below for texts later (SCRUM-60).
+ * Paper in portrait, the photo 88 × 110 mm (4:5) with the same white border at
+ * the top and on the sides (6.8 mm, SCRUM-66, Germain 2026-11-13), and the
+ * white band below for texts (SCRUM-60).
  *
  * The same file lives in the web app (apps/web/lib/print/layout.ts):
  * the preview on the phone and the page sent to the printer are built from
  * the same numbers. A test checks that both copies agree.
  *
  * "10 × 15" photo paper is 4 × 6 inches in practice (101.6 × 152.4 mm): the
- * photo keeps its size and its 1 cm top border, sits in the middle across
- * (side borders of 10.8 mm) and the band below gets what is left (42.4 mm).
+ * photo sits in the middle across (side borders of 6.8 mm), as far from the
+ * top, and the band below gets what is left (35.6 mm). No border under 6 mm:
+ * a paper shifted by a millimetre would show uneven borders.
  */
 
 export const PRINT_LAYOUT = {
   /** 4 × 6 inches, the "10 × 15" of photo printers. */
   paperMm: { width: 101.6, height: 152.4 },
-  photoMm: { width: 80, height: 100 },
-  topBorderMm: 10,
+  photoMm: { width: 88, height: 110 },
+  topBorderMm: 6.8,
   dpi: 300,
 } as const;
 
