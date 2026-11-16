@@ -40,29 +40,38 @@ const logo = (page: Page) => page.getByRole("img", { name: NAME });
 /**
  * Scenario: Logo sur l'accueil de l'événement
  *   Then le logo complet en version couleur est affiché (thème clair, SCRUM-46)
- *   And il mesure au moins 200 px de large
  *   And ses proportions sont celles du fichier fourni
- * SCRUM-51 — Scenario: Logo plus petit
- *   Then le logo est plus petit qu'avant (232 px) et reste au-dessus de sa taille minimale
+ * SCRUM-67 — Scenario: Le logo complet de l'accueil fait 120 px de haut
+ *   Then le logo affiché est le logo complet
+ *   And l'image du logo mesure 120 px de haut
+ *   And ses proportions sont celles du fichier
+ *   (exception à la largeur minimale de la charte, décidée par Germain)
  */
-test("accueil : logo complet couleur, assez grand, non déformé", async ({ page }) => {
-  await openHome(page);
+for (const size of [
+  { width: 375, height: 667 },
+  { width: 1280, height: 800 },
+]) {
+  test(`accueil ${size.width} px : logo complet couleur, 120 px de haut, non déformé`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(size);
+    await openHome(page);
 
-  await expect(logo(page)).toBeVisible();
-  await expect(logo(page)).toHaveAttribute("src", /logo-complet-couleur\.svg$/);
-  await expect(logo(page)).toHaveJSProperty("complete", true);
+    await expect(logo(page)).toBeVisible();
+    await expect(logo(page)).toHaveAttribute("src", /logo-complet-couleur\.svg$/);
+    await expect(logo(page)).toHaveJSProperty("complete", true);
 
-  const box = await logo(page).boundingBox();
-  expect(box!.width * DRAWING_SHARE).toBeGreaterThanOrEqual(200);
-  expect(box!.width).toBeLessThan(232);
-  expect(box!.width / box!.height).toBeCloseTo(CANVAS_RATIO, 1);
+    const box = await logo(page).boundingBox();
+    expect(box!.height).toBeCloseTo(120, 0);
+    expect(box!.width / box!.height).toBeCloseTo(CANVAS_RATIO, 1);
 
-  const natural = await logo(page).evaluate((img: HTMLImageElement) => ({
-    width: img.naturalWidth,
-    height: img.naturalHeight,
-  }));
-  expect(natural.width / natural.height).toBeCloseTo(CANVAS_RATIO, 1);
-});
+    const natural = await logo(page).evaluate((img: HTMLImageElement) => ({
+      width: img.naturalWidth,
+      height: img.naturalHeight,
+    }));
+    expect(natural.width / natural.height).toBeCloseTo(CANVAS_RATIO, 1);
+  });
+}
 
 test("le fichier affiché est bien la version couleur de la designer", () => {
   const svg = readFileSync(
@@ -141,6 +150,7 @@ test("après l'aperçu de la photo : l'icône seule, au-dessus de 16 px", async 
   expect(box!.width / box!.height).toBeCloseTo(1, 1);
 });
 
+// SCRUM-67 — Scenario: La règle de la charte reste valable ailleurs
 test("une taille trop petite bascule sur la version plus simple", async () => {
   const { fittingVariant } = await import("../components/ui/logo");
   expect(fittingVariant("full", 256)).toBe("full");
@@ -170,6 +180,10 @@ for (const entry of [
     const logoBox = await logo(page).boundingBox();
     const messageBox = await message.boundingBox();
     expect(logoBox!.y + logoBox!.height).toBeLessThanOrEqual(messageBox!.y);
+
+    // SCRUM-67 — Scenario: L'exception ne touche que l'accueil invité
+    await expect(logo(page)).toHaveAttribute("src", /logo-complet-couleur\.svg$/);
+    expect(logoBox!.width).toBeCloseTo(232, 0);
   });
 }
 

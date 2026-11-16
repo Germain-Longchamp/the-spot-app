@@ -45,17 +45,40 @@ export function fittingVariant(variant: Variant, width: number): Variant {
   return variant;
 }
 
-interface Props {
-  variant?: Variant;
+type Size =
   /** Rendered width of the file, in CSS pixels. */
-  width: number;
+  | { width: number; height?: never }
+  /** Rendered height of the file, in CSS pixels; the width follows the file. */
+  | { height: number; width?: never };
+
+type Props = Size & {
+  variant?: Variant;
+  /**
+   * Keeps the asked version below the charter's minimum size. Only for a
+   * place Germain decided on: the guest home (SCRUM-67).
+   */
+  belowCharterMinimum?: boolean;
   className?: string;
+};
+
+/** Width of the file for a given height, the proportions of the file kept. */
+function widthFor(variant: Variant, height: number) {
+  if (variant === "icon") return height;
+  return Math.round((height * CANVAS.width) / CANVAS.height);
 }
 
-export function Logo({ variant = "full", width, className = "" }: Props) {
-  const used = fittingVariant(variant, width);
+export function Logo({
+  variant = "full",
+  width: askedWidth,
+  height: askedHeight,
+  belowCharterMinimum = false,
+  className = "",
+}: Props) {
+  const width = askedWidth ?? widthFor(variant, askedHeight!);
+  const used = belowCharterMinimum ? variant : fittingVariant(variant, width);
   const height =
-    used === "icon" ? width : Math.round((width * CANVAS.height) / CANVAS.width);
+    askedHeight ??
+    (used === "icon" ? width : Math.round((width * CANVAS.height) / CANVAS.width));
   // The files carry 40 units of margin; the charter asks for about 56.
   const extra =
     used === "icon"
