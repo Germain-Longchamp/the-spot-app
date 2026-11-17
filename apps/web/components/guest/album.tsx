@@ -6,6 +6,7 @@ import { Screen } from "@/components/guest/screen";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
 import { ErrorMessage } from "@/components/ui/error-message";
+import { ICON_SIZE, IconTile } from "@/components/ui/icon-tile";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -130,9 +131,9 @@ export function PrintBanner({
       onClick={onOpen}
       className={`flex w-full items-center gap-3 rounded-[14px] px-3.5 py-3 text-left transition-transform active:scale-[0.98] ${tone}`}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-surface/40">
-        {ready.length && !problems.length ? <CheckIcon size={20} /> : <PrinterIcon size={20} />}
-      </span>
+      <IconTile tint="bg-surface/40">
+        {ready.length && !problems.length ? <CheckIcon size={ICON_SIZE} /> : <PrinterIcon size={ICON_SIZE} />}
+      </IconTile>
       <span role="status" aria-live="polite" className="flex flex-1 flex-col">
         <span className="text-sm font-semibold">{title}</span>
         <span className="text-[13px] opacity-90">{detail} · voir le suivi</span>
