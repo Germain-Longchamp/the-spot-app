@@ -107,7 +107,9 @@ export function EventHome({
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-md animate-screen-in flex-col gap-5 px-4 pb-8 pt-3">
       <div className="flex flex-col items-center gap-2 text-center">
-        <Logo width={224} />
+        {/* Smaller than the charter allows for the full logo: Germain's
+            decision, so the actions come first on screen (SCRUM-67). */}
+        <Logo height={120} belowCharterMinimum />
         {event.eventDate && (
           <span data-testid="event-date" className="text-xs uppercase tracking-[0.18em] text-muted">
             {eventDateText(event.eventDate)}
