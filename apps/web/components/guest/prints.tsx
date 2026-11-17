@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PrintPreview } from "@/components/guest/print-preview";
+import { PrintZoom } from "@/components/guest/print-zoom";
 import { Screen } from "@/components/guest/screen";
 import { PrinterStatus } from "@/components/printer-status";
 import { Button } from "@/components/ui/button";
-import { CameraIcon, ChevronRightIcon, ImageIcon } from "@/components/ui/icons";
+import { CameraIcon } from "@/components/ui/icons";
 import {
   AlbumItem,
   isActive,
@@ -12,6 +14,7 @@ import {
   queueText,
   sortPrints,
 } from "@/lib/guest/album";
+import { signFullImage } from "@/lib/guest/gallery";
 import { createClient } from "@/lib/supabase/client";
 
 /** The card of one print: its state in a word, then what it means for the guest. */
@@ -47,57 +50,52 @@ function describe(item: AlbumItem): { chip: string; detail: string; tone: string
   }
 }
 
+/** Width of the print on a card: small, yet the band and its text show. */
+const THUMB_WIDTH = "6rem";
+
+/**
+ * One print of the queue (SCRUM-69): the print as it will come out, then its
+ * state. No page behind it; a tap on the print shows it full screen.
+ */
 function PrintCard({
   item,
   paused,
-  onOpen,
+  onZoom,
 }: {
   item: AlbumItem;
   paused: boolean;
-  onOpen: () => void;
+  onZoom: () => void;
 }) {
   const { chip, detail, tone } = describe(item);
   const ready = item.print!.status === "DONE";
   const waiting = item.print!.status === "PENDING";
 
   return (
-    <li>
-      <button
-        type="button"
-        data-testid="print-card"
-        onClick={onOpen}
-        className={`flex w-full items-center gap-4 rounded-2xl bg-surface p-3 text-left shadow-card transition-transform active:scale-[0.98] ${
-          ready ? "border-2 border-brand" : "border border-divider"
-        }`}
-      >
-        <span className="w-16 shrink-0 rounded-sm bg-surface p-1 pb-4 shadow-card">
-          {item.thumbUrl ? (
-            // Signed, short-lived links: an image optimizer would cache them.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.thumbUrl} alt="Votre photo" className="aspect-square w-full object-cover" />
-          ) : (
-            <span className="flex aspect-square w-full items-center justify-center bg-divider text-muted">
-              <ImageIcon size={20} />
-              <span className="sr-only">Photo indisponible</span>
-            </span>
-          )}
+    <li
+      data-testid="print-card"
+      className={`flex items-center gap-4 rounded-2xl bg-surface p-3 shadow-card ${
+        ready ? "border-2 border-brand" : "border border-divider"
+      }`}
+    >
+      <span className="shrink-0" style={{ width: THUMB_WIDTH }}>
+        <PrintPreview
+          src={item.thumbUrl}
+          maxWidth={THUMB_WIDTH}
+          frame={item.print!.frame}
+          crop={item.crop}
+          onOpen={item.thumbUrl ? onZoom : undefined}
+          openLabel="Voir ce tirage en grand"
+        />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>{chip}</span>
+        <span role="status" aria-live="polite" className="text-sm text-muted">
+          {detail}
         </span>
-        <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>{chip}</span>
-          {item.print!.frameText && (
-            <span data-testid="print-card-text" className="max-w-full truncate text-sm font-semibold text-accent">
-              « {item.print!.frameText} »
-            </span>
-          )}
-          <span role="status" aria-live="polite" className="text-sm text-muted">
-            {detail}
-          </span>
-          {waiting && paused && (
-            <span className="text-sm text-muted">Les impressions reprennent bientôt</span>
-          )}
-        </span>
-        <ChevronRightIcon size={20} className="shrink-0 text-muted" />
-      </button>
+        {waiting && paused && (
+          <span className="text-sm text-muted">Les impressions reprennent bientôt</span>
+        )}
+      </span>
     </li>
   );
 }
@@ -112,20 +110,34 @@ export function Prints({
   offline,
   eventId,
   onBack,
-  onOpen,
   onTakePhoto,
 }: {
   items: AlbumItem[];
   offline: boolean;
   eventId: string;
   onBack: () => void;
-  onOpen: (photoId: string) => void;
   onTakePhoto: () => void;
 }) {
   const prints = useMemo(() => sortPrints(items.filter((item) => isActive(item))), [items]);
   const waiting = prints.some((item) => item.print!.status === "PENDING");
-  const [paused, setPaused] = useState(false);
   const client = useMemo(() => createClient(), []);
+  const [paused, setPaused] = useState(false);
+  // The print shown full screen; the queue stays underneath, where it was.
+  const [zoomed, setZoomed] = useState<string | null>(null);
+  const zoomedItem = prints.find((item) => item.photoId === zoomed && item.thumbUrl);
+  // Full screen deserves the full image; the thumbnail shows until it is signed.
+  const [fullUrl, setFullUrl] = useState<{ photoId: string; url: string } | null>(null);
+  const zoomedPath = zoomedItem?.fullPath;
+  useEffect(() => {
+    if (!zoomed || !zoomedPath) return;
+    let active = true;
+    signFullImage(client, zoomedPath).then(
+      (url) => active && url && setFullUrl({ photoId: zoomed, url })
+    );
+    return () => {
+      active = false;
+    };
+  }, [client, zoomed, zoomedPath]);
 
   // Assumption (to confirm with Germain): paused prints keep their place, with a word.
   useEffect(() => {
@@ -175,12 +187,21 @@ export function Prints({
               key={item.photoId}
               item={item}
               paused={paused}
-              onOpen={() => onOpen(item.photoId)}
+              onZoom={() => setZoomed(item.photoId)}
             />
           ))}
         </ul>
       ) : (
         <p className="text-muted">Aucun tirage en cours. Prenez une photo pour en lancer un.</p>
+      )}
+
+      {zoomedItem && (
+        <PrintZoom
+          src={fullUrl?.photoId === zoomedItem.photoId ? fullUrl.url : zoomedItem.thumbUrl!}
+          frame={zoomedItem.print!.frame}
+          crop={zoomedItem.crop}
+          onClose={() => setZoomed(null)}
+        />
       )}
 
       {offline && (

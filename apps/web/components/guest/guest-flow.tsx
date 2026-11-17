@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Camera } from "@/components/guest/camera";
-import { PhotoDetail, PrintBanner, useAlbum } from "@/components/guest/album";
+import { PrintBanner, useAlbum } from "@/components/guest/album";
 import { EventHome } from "@/components/guest/event-home";
 import { PhotoPreview } from "@/components/guest/photo-preview";
 import { Prints } from "@/components/guest/prints";
@@ -15,8 +15,7 @@ type Screen =
   | { name: "home" }
   | { name: "camera" }
   | { name: "preview"; photo: Blob }
-  | { name: "prints" }
-  | { name: "photo"; photoId: string };
+  | { name: "prints" };
 
 interface Props {
   event: GuestEvent;
@@ -43,14 +42,12 @@ export function GuestFlow({ event, guestId, token }: Props) {
     setScreen(hash === `#${PRINTS_HASH}` ? { name: "prints" } : { name: "camera" });
   }, []);
   const openPrints = () => setScreen({ name: "prints" });
-  const openPhoto = (photoId: string) => setScreen({ name: "photo", photoId });
   const galleryHref = `/e/${token}/galerie`;
 
   // Read only on the screens that show it: never while taking a photo.
-  const albumShown = screen.name === "home" || screen.name === "prints" || screen.name === "photo";
+  const albumShown = screen.name === "home" || screen.name === "prints";
   const album = useAlbum(event.id, guestId, albumShown);
   const items = album.items ?? [];
-  const opened = screen.name === "photo" ? items.find((item) => item.photoId === screen.photoId) : undefined;
 
   // The number under the gallery entry, read again each time the home shows.
   const [galleryCount, setGalleryCount] = useState<number | null>(null);
@@ -121,7 +118,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
       )}
 
       {/* A photo that vanished meanwhile (removed by the team): back home. */}
-      {(screen.name === "home" || (screen.name === "photo" && !opened)) && (
+      {screen.name === "home" && (
         <EventHome
           event={event}
           token={token}
@@ -140,19 +137,7 @@ export function GuestFlow({ event, guestId, token }: Props) {
           offline={album.offline}
           eventId={event.id}
           onBack={home}
-          onOpen={openPhoto}
           onTakePhoto={() => setScreen({ name: "camera" })}
-        />
-      )}
-
-      {screen.name === "photo" && opened && (
-        <PhotoDetail
-          key={opened.photoId}
-          item={opened}
-          eventId={event.id}
-          backLabel="Vos tirages"
-          onBack={openPrints}
-          onPrinted={album.refresh}
         />
       )}
     </>

@@ -7,6 +7,7 @@ import {
   bandTextWidthMm,
   cleanLine,
   fitLine,
+  CropZone,
   FrameText,
   pageLayoutPercent,
   PRINT_LAYOUT,
@@ -141,6 +142,16 @@ function Band({ frame }: { frame: FrameText }) {
   );
 }
 
+/** The whole photo, scaled and moved so the zone fills the frame exactly. */
+function cropStyle(zone: CropZone) {
+  return {
+    width: `${100 / zone.w}%`,
+    height: `${100 / zone.h}%`,
+    left: `${(-zone.x / zone.w) * 100}%`,
+    top: `${(-zone.y / zone.h) * 100}%`,
+  };
+}
+
 /**
  * The print as it will come out (SCRUM-65): white paper in portrait, the
  * Polaroid borders, the photo cut to 4:5 in the middle (object-cover keeps
@@ -158,13 +169,19 @@ export function PrintPreview({
   fit = false,
   maxWidth = "24rem",
   onOpen,
+  openLabel = "Voir le tirage en grand",
   frame,
+  crop,
 }: {
-  src: string;
+  /** null: the photo could not be loaded; the page and its band stay. */
+  src: string | null;
   fit?: boolean;
   maxWidth?: string;
   onOpen?: () => void;
+  openLabel?: string;
   frame?: FrameText | null;
+  /** The stored zone (SCRUM-69); without one, the middle of the photo. */
+  crop?: CropZone | null;
 }) {
   const ratio = layout.pageRatio;
   const width = fit
@@ -186,14 +203,20 @@ export function PrintPreview({
           height: `${layout.photo.height}%`,
         }}
       >
-        {/* A local blob: nothing for an image optimizer to do. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt="Votre photo"
-          data-testid="print-photo"
-          className="size-full object-cover"
-        />
+        {src === null ? (
+          <span role="img" aria-label="Photo indisponible" className="block size-full" />
+        ) : (
+          // A local blob or a short-lived signed link: nothing for an image
+          // optimizer to do.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt="Votre photo"
+            data-testid="print-photo"
+            className={crop ? "absolute max-w-none" : "size-full object-cover"}
+            style={crop ? cropStyle(crop) : undefined}
+          />
+        )}
       </div>
       {frame && <Band frame={frame} />}
     </div>
@@ -203,8 +226,12 @@ export function PrintPreview({
     <button
       type="button"
       onClick={onOpen}
-      aria-label="Voir le tirage en grand"
-      className="flex max-h-full max-w-full justify-center rounded-sm transition-transform active:scale-[0.98]"
+      aria-label={openLabel}
+      // A button shrinks to its content: without `fit`, it takes the width
+      // the page is sized against (SCRUM-69).
+      className={`flex max-h-full max-w-full justify-center rounded-sm transition-transform active:scale-[0.98] ${
+        fit ? "" : "w-full"
+      }`}
     >
       {sheet}
     </button>

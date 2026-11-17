@@ -288,14 +288,18 @@ test.describe("écran « Votre photo »", () => {
 });
 
 test.describe("« Vos tirages » et panneau de l'équipe", () => {
-  test("la carte du tirage rappelle le texte", async ({ page }) => {
+  // SCRUM-69: the text is on the print itself, no more quoted line.
+  test("la carte du tirage montre le texte sur le tirage", async ({ page }) => {
     await mockGuestBackend(page);
     await mockAlbum(page, {
       photos: [{ id: "a" }],
       jobs: [{ ...fakeJob("j1", "PENDING", "a"), frame_line1: "Tonton Michel", frame_line2: "14 juin" }],
     });
     await page.goto("/e/jeton-de-test#tirages");
-    await expect(page.getByTestId("print-card-text")).toHaveText("« Tonton Michel · 14 juin »");
+    const card = page.getByTestId("print-card");
+    await expect(card.getByTestId("print-band")).toContainText("Tonton Michel");
+    await expect(card.getByTestId("print-band")).toContainText("14 JUIN", { ignoreCase: true });
+    await expect(card).not.toContainText("«");
   });
 
   /**
