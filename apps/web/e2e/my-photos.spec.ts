@@ -1,5 +1,4 @@
 import { test, expect, Page } from "@playwright/test";
-import { guestStatusLabel } from "../lib/print/job-status";
 import { fakeJob, mockAlbum } from "./support/album-mocks";
 import { GUEST_ID, mockGuestBackend, TEST_EVENT } from "./support/guest-mocks";
 
@@ -249,7 +248,7 @@ test("une photo prête depuis longtemps ne s'affiche plus en bandeau", async ({ 
   await expect(banner(page)).toHaveCount(0);
 });
 
-test("le bandeau ouvre « Vos tirages », puis la photo, et l'on revient pas à pas", async ({ page }) => {
+test("le bandeau ouvre « Vos tirages », et l'on revient à l'accueil", async ({ page }) => {
   await mockAlbum(page, { photos: [{ id: "a" }], jobs: [fakeJob("j1", "DONE", "a")] });
   await openHome(page);
 
@@ -257,12 +256,10 @@ test("le bandeau ouvre « Vos tirages », puis la photo, et l'on revient pas à 
   await banner(page).click();
   await expect(page.getByRole("heading", { name: "Vos tirages" })).toBeVisible();
 
-  await page.getByTestId("print-card").click();
-  await expect(page.getByRole("heading", { name: "Votre photo" })).toBeVisible();
-  await expect(page.getByRole("list", { name: "Étapes de l'impression" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Vos tirages" }).click();
+  // SCRUM-69: no page behind a print any more.
+  await page.getByTestId("print-card").getByText("Elle vous attend").click();
   await expect(page.getByRole("heading", { name: "Vos tirages" })).toBeVisible();
+
   await page.getByRole("button", { name: "Accueil" }).click();
   await expect(page.getByRole("button", { name: "Prendre une photo" })).toBeVisible();
 });
@@ -286,14 +283,15 @@ for (const status of ["STUCK", "FAILED"] as const) {
     await expect(banner(page)).toContainText("équipe");
 
     await banner(page).click();
-    await page.getByTestId("print-card").click();
 
-    await expect(page.getByRole("status").filter({ hasText: guestStatusLabel(status) })).toBeVisible();
+    // SCRUM-69: the card says it, no page behind it.
+    await expect(page.getByTestId("print-card")).toContainText("Un souci");
+    await expect(page.getByTestId("print-card")).toContainText("rendez-vous auprès de l'équipe");
     await expect(page.locator("body")).not.toContainText(RAW);
   });
 }
 
-test("imprimante hors ligne : visible sur le détail d'une photo", async ({ page }) => {
+test("imprimante hors ligne : visible sur « Vos tirages »", async ({ page }) => {
   await mockAlbum(page, {
     photos: [{ id: "a" }],
     jobs: [fakeJob("j1", "PENDING", "a")],

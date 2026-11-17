@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { PrintPreview } from "@/components/guest/print-preview";
-import type { FrameText } from "@/lib/print/layout";
+import type { CropZone, FrameText } from "@/lib/print/layout";
 import { CloseIcon } from "@/components/ui/icons";
 
 const MAX_SCALE = 4;
@@ -28,10 +28,12 @@ const REST: View = { scale: 1, x: 0, y: 0 };
 export function PrintZoom({
   src,
   frame,
+  crop,
   onClose,
 }: {
   src: string;
   frame?: FrameText | null;
+  crop?: CropZone | null;
   onClose: () => void;
 }) {
   const [view, setView] = useState<View>(REST);
@@ -170,7 +172,7 @@ export function PrintZoom({
           className="flex min-h-0 flex-1 transition-transform duration-75"
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
         >
-          <PrintPreview src={src} fit frame={frame} />
+          <PrintPreview src={src} fit frame={frame} crop={crop} />
         </div>
       </div>
     </div>,

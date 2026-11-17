@@ -11,6 +11,8 @@ export interface FakePhoto {
   id: string;
   is_published?: boolean;
   created_at?: string;
+  /** The zone kept for the print (SCRUM-65); none for older photos. */
+  crop?: { x: number; y: number; w: number; h: number };
 }
 
 export interface FakeJob {
@@ -69,6 +71,10 @@ export async function mockAlbum(
         thumb_path: null,
         is_published: photo.is_published ?? false,
         created_at: photo.created_at ?? "2026-11-06T13:30:00.000Z",
+        crop_x: photo.crop?.x ?? null,
+        crop_y: photo.crop?.y ?? null,
+        crop_w: photo.crop?.w ?? null,
+        crop_h: photo.crop?.h ?? null,
       }))
     );
   });

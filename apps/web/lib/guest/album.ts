@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PrintJobStatus } from "@/lib/print/job-status";
+import type { CropZone, FrameText } from "@/lib/print/layout";
 
 export interface AlbumItem {
   photoId: string;
@@ -8,6 +9,11 @@ export interface AlbumItem {
   fullPath: string;
   published: boolean;
   createdAt: string;
+  /**
+   * The part of the photo kept for the print (SCRUM-65); null for photos sent
+   * before, which the agent centres.
+   */
+  crop: CropZone | null;
   /** The latest print request for this photo, if any. */
   print: AlbumPrint | null;
 }
@@ -20,8 +26,8 @@ export interface AlbumPrint {
    * still waiting; null otherwise, or when the count could not be read.
    */
   ahead: number | null;
-  /** The texts printed under the photo (SCRUM-61), "line 1 · line 2". */
-  frameText?: string | null;
+  /** The texts printed under the photo (SCRUM-61), as asked with the print. */
+  frame?: FrameText | null;
 }
 
 /** Long enough to browse, short enough to be useless if copied. */
@@ -117,7 +123,7 @@ export async function loadAlbum(
     const [photos, prints] = await Promise.all([
       supabase
         .from("photos")
-        .select("id, storage_path, thumb_path, is_published, created_at")
+        .select("id, storage_path, thumb_path, is_published, created_at, crop_x, crop_y, crop_w, crop_h")
         .eq("event_id", eventId)
         .eq("guest_id", guestId)
         .is("deleted_at", null)
@@ -138,7 +144,7 @@ export async function loadAlbum(
           status: job.status,
           createdAt: job.created_at,
           ahead: null,
-          frameText: frameTextOf(job.frame_line1, job.frame_line2),
+          frame: frameOf(job.frame_line1, job.frame_line2),
         });
       }
     }
@@ -177,12 +183,36 @@ export async function loadAlbum(
         fullPath: row.storage_path,
         published: row.is_published,
         createdAt: row.created_at,
+        crop: cropOf(row),
         print: latest.get(row.id) ?? null,
       }))
     );
   } catch {
     return null;
   }
+}
+
+/** The zone stored with the photo, or null when it has none (all or nothing). */
+export function cropOf(row: {
+  crop_x?: number | null;
+  crop_y?: number | null;
+  crop_w?: number | null;
+  crop_h?: number | null;
+}): CropZone | null {
+  const { crop_x: x, crop_y: y, crop_w: w, crop_h: h } = row;
+  if (x == null || y == null || w == null || h == null) return null;
+  return { x, y, w, h };
+}
+
+/** The two lines of a print request, or null when both are empty. */
+export function frameOf(
+  line1: string | null | undefined,
+  line2: string | null | undefined
+): FrameText | null {
+  const first = line1?.trim() ? line1 : "";
+  const second = line2?.trim() ? line2 : null;
+  if (!first && !second) return null;
+  return { line1: first, line2: second };
 }
 
 /** "Camille & Hugo · 14 juin", or null without a text. */
