@@ -7,6 +7,7 @@ import {
   GalleryIcon,
   ImageIcon,
 } from "@/components/ui/icons";
+import { ICON_SIZE, IconTile } from "@/components/ui/icon-tile";
 import { Logo } from "@/components/ui/logo";
 import type { GuestEvent } from "@/lib/guest/enter-event";
 import { galleryCountText } from "@/lib/guest/gallery";
@@ -69,17 +70,13 @@ function Action({
           : "min-h-[72px] border-[1.5px] border-accent bg-surface px-5 py-4 text-accent"
       }`}
     >
-      <span
-        className={`flex shrink-0 items-center justify-center ${
-          primary ? "size-12 rounded-2xl bg-surface/20" : "size-10 rounded-xl bg-background"
-        }`}
-      >
+      <IconTile tint={primary ? "bg-surface/20" : "bg-background"}>
         {busy ? (
           <span aria-hidden="true" className="size-6 animate-spin rounded-full border-2 border-current border-t-transparent" />
         ) : (
           icon
         )}
-      </span>
+      </IconTile>
       <span className="flex flex-col gap-0.5">
         <span className={primary ? "text-lg font-bold" : "text-base font-semibold"}>
           {busy ? "Patientez…" : title}
@@ -125,14 +122,14 @@ export function EventHome({
       <div className="flex flex-col gap-3">
         <Action
           primary
-          icon={<CameraIcon size={26} />}
+          icon={<CameraIcon size={ICON_SIZE} />}
           title="Prendre une photo"
           hint="Avec l'appareil de votre téléphone"
           onClick={onTakePhoto}
         />
         <Action
           primary={false}
-          icon={<ImageIcon size={22} />}
+          icon={<ImageIcon size={ICON_SIZE} />}
           title="Importer une photo"
           hint="Depuis vos photos"
           onClick={onImportPhoto}
@@ -152,7 +149,9 @@ export function EventHome({
         href={`/e/${token}/galerie`}
         className="flex min-h-16 items-center gap-3.5 rounded-2xl border border-divider bg-surface px-4 py-3 transition-transform active:scale-[0.98]"
       >
-        <GalleryIcon size={24} className="shrink-0 text-accent" />
+        <IconTile tint="bg-background text-accent">
+          <GalleryIcon size={ICON_SIZE} />
+        </IconTile>
         <span className="flex flex-1 flex-col">
           <span className="font-semibold">
             {event.galleryEnabled ? "Voir la galerie" : "Vos photos"}
